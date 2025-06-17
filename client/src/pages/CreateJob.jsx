@@ -36,8 +36,13 @@ export default function CreateJobMinimal() {
       }
 
       const data = await res.json();
-      alert("Job Created! AI will handle the rest.");
-      // Optionally redirect to: `/jobs/${data.id}`
+      const shareableLink = `${window.location.origin}/apply-job/${data.job._id}`;
+      alert(`Job Created! Share this link with candidates: ${shareableLink}`);
+      
+      // Copy link to clipboard
+      navigator.clipboard.writeText(shareableLink).then(() => {
+        console.log('Link copied to clipboard');
+      });
     } catch (err) {
       console.error("Job creation error:", err);
       alert("Something went wrong.");

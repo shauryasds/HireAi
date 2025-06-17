@@ -2,9 +2,13 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const interviewSchema = new Schema({
-  candidate: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  candidateName: {
+    type: String,
+    required: true,
+  },
+
+  candidateEmail: {
+    type: String,
     required: true,
   },
 

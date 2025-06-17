@@ -1,8 +1,10 @@
-import { useParams } from "react-router-dom";
+
+import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 export default function ApplyJob() {
   const { jobId } = useParams();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "" });
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,24 +34,27 @@ export default function ApplyJob() {
     e.preventDefault();
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/apply`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/interview/start`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           jobId,
-          name: form.name,
-          email: form.email,
+          candidateName: form.name,
+          candidateEmail: form.email,
         }),
       });
 
+      if (!res.ok) throw new Error("Failed to start interview");
+
       const data = await res.json();
-      console.log("Response:", data);
-      alert("Application submitted successfully!");
+      // Store questions for the interview page
+      localStorage.setItem(`interview_${data.interviewId}`, JSON.stringify(data.questions));
+      navigate(`/interview/${data.interviewId}`);
     } catch (err) {
       console.error(err);
-      alert("Submission failed");
+      alert("Failed to start interview");
     }
   };
 
@@ -78,9 +83,20 @@ export default function ApplyJob() {
         <p className="text-sm text-gray-400 text-center mb-6">
           Location: {job.location} | Type: {job.type} | Salary: {job.salaryRange?.min}–{job.salaryRange?.max} {job.salaryRange?.currency}
         </p>
-        <p className="text-sm text-gray-400 text-center mb-6">
+        <p className="text-sm text-gray-400 text-center mb-8">
           {job.description}
         </p>
+
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-yellow-400 mb-2">Skills Required:</h3>
+          <div className="flex flex-wrap gap-2">
+            {job.skillsRequired?.map((skill, index) => (
+              <span key={index} className="bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full text-sm">
+                {skill}
+              </span>
+            ))}
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -117,7 +133,7 @@ export default function ApplyJob() {
             type="submit"
             className="w-full bg-yellow-400 text-black font-semibold py-3 rounded-full hover:bg-yellow-300 transition-all duration-300 shadow"
           >
-            Attend Interview
+            Start Interview
           </button>
         </form>
       </div>

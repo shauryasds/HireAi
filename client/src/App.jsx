@@ -20,7 +20,7 @@ export default function App() {
         <Route path="/create-job" element={<CreateJob />} />
         <Route path="/apply-job/:jobId" element={<ApplyJob />} />
         <Route path="/interview/:sessionId" element={<Interview />} />
-        <Route path="/report/:candidateId" element={<Report />} />
+        <Route path="/report/:interviewId" element={<Report />} />
       </Routes>
     </Router>
     </div>

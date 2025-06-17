@@ -19,14 +19,14 @@ DbConnection();
 
 // const resumeRoutes = require('./routes/resume.js');
 // const shortlistRoutes = require('./routes/shortlist.js');
-// const interviewRoutes = require('./routes/interview.js');
+const interviewRoutes = require('./routes/interview.js');
 const authRoutes = require('./routes/auth.js');
 const jobRoutes = require('./routes/job.js');
 
 
 // app.use('/api/resume', resumeRoutes);
 // app.use('/api/shortlist', shortlistRoutes);
-// app.use('/api/interview', interviewRoutes);
+app.use('/api/interview', interviewRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/job', jobRoutes);
 
