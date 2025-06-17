@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -13,7 +12,7 @@ export default function ApplyJob() {
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/job/view/${jobId}`);
+        const res = await fetch(`http://localhost:3000/api/job/view/${jobId}`);
         if (!res.ok) throw new Error("Failed to fetch job details.");
         const data = await res.json();
         setJob(data);
@@ -34,7 +33,7 @@ export default function ApplyJob() {
     e.preventDefault();
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/interview/start`, {
+      const res = await fetch('http://localhost:3000/api/interview/start', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

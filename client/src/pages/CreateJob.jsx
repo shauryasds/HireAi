@@ -21,7 +21,7 @@ export default function CreateJobMinimal() {
     };
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/job/post`, {
+      const res = await fetch('http://localhost:3000/api/job/post', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(jobData),
@@ -38,7 +38,7 @@ export default function CreateJobMinimal() {
       const data = await res.json();
       const shareableLink = `${window.location.origin}/apply-job/${data.job._id}`;
       alert(`Job Created! Share this link with candidates: ${shareableLink}`);
-      
+
       // Copy link to clipboard
       navigator.clipboard.writeText(shareableLink).then(() => {
         console.log('Link copied to clipboard');

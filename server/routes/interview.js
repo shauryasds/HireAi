@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Interview = require('../Schema/InterviewSchema');
@@ -11,7 +10,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 router.post('/start', async (req, res) => {
   try {
     const { jobId, candidateName, candidateEmail } = req.body;
-    
+
     const job = await Job.findById(jobId);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
@@ -20,10 +19,17 @@ router.post('/start', async (req, res) => {
     Return ONLY a JSON array of strings, no extra text:
     ["question1", "question2", "question3", "question4", "question5"]`;
 
-    const result = await ai.generateContent(prompt);
-    let questions;
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash", // or "gemini-2.0-pro", based on access
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    });
+
+   let questions;
     try {
-      const cleanResponse = result.response.text().trim().replace(/^```json\s*|\s*```$/g, '');
+      const textOutput = result.text;
+      let cleanResponse = textOutput.trim();
+      cleanResponse = cleanResponse.replace(/^```json\s*|\s*```$/g, '');
+      // console.log(cleanResponse)
       questions = JSON.parse(cleanResponse);
     } catch (e) {
       // Fallback questions
@@ -58,36 +64,46 @@ router.post('/submit/:interviewId', async (req, res) => {
   try {
     const { answers } = req.body;
     const interview = await Interview.findById(req.params.interviewId).populate('job');
-    
+
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
     // Score answers using AI
-    let totalScore = 0;
     const scoredQuestions = [];
+    const prompt = `Score the following answer to the question "${interview.questions}" on a scale of 0 to 100 based on relevance, clarity, and depth:\n\nAnswer: "${answers}"\n\n you have do strict marking each question holds equal weight .Return ONLY a number between 0 and 100.`;
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash", // or "gemini-2.0-pro", based on access
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    });
 
+    let score;
+    try {
+      const textOutput = result.text;
+      console.log(textOutput)
+      score = parseFloat(textOutput.trim());
+      if (isNaN(score) || score < 0 || score > 100) {
+        score = 0; // Fallback to 0 if scoring fails
+      }
+    } catch (e) {
+      score = 0; // Fallback to 0 if parsing fails
+    }
     for (let i = 0; i < interview.questions.length; i++) {
       const question = interview.questions[i].question;
       const answer = answers[i] || '';
-      
-      // Simple scoring for now
-      let score = Math.min(answer.length / 10, 10); // Basic scoring based on answer length
-      if (answer.length > 50) score = Math.min(score + 2, 10);
+
       
       scoredQuestions.push({
         question,
-        answer,
-        score: Math.round(score)
+        answer
       });
-      totalScore += score;
     }
 
     interview.questions = scoredQuestions;
-    interview.totalScore = Math.round(totalScore);
+    interview.totalScore = Math.round(score);
     interview.status = 'completed';
     interview.completedAt = new Date();
-    
+
     await interview.save();
-    
+
     res.json({ 
       message: 'Interview submitted successfully',
       interviewId: interview._id,
@@ -104,7 +120,7 @@ router.get('/report/:interviewId', async (req, res) => {
   try {
     const interview = await Interview.findById(req.params.interviewId).populate('job');
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
-    
+
     res.json(interview);
   } catch (err) {
     console.error(err);

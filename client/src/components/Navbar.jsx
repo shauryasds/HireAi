@@ -31,23 +31,17 @@ function Navbar() {
               Create Job
             </Link>
           </li>
-          <li>
-            <Link
-              to="/apply-job"
-              className="hover:text-yellow-400 transition-colors duration-300"
-            >
-              Apply
-            </Link>
-          </li>
         </ul>
 
         {/* Login Button (Desktop) */}
-        <button
-          type="button"
-          className="hidden md:block ml-4 px-5 py-2 rounded-full bg-yellow-400 text-black font-semibold hover:bg-yellow-300 transition-all duration-300 shadow"
-        >
-          Login
-        </button>
+        <Link to="/login">
+          <button
+            type="button"
+            className="hidden md:block ml-4 px-5 py-2 rounded-full bg-yellow-400 text-black font-semibold hover:bg-yellow-300 transition-all duration-300 shadow"
+          >
+            Login
+          </button>
+        </Link>
 
         {/* Mobile Menu Button */}
         <button
@@ -76,18 +70,16 @@ function Navbar() {
             Create Job
           </Link>
           <Link
-            to="/apply-job"
-            className="block hover:text-yellow-400 transition-colors"
+            to="/login"
             onClick={() => setIsOpen(false)}
           >
-            Apply
+            <button
+              type="button"
+              className="w-full mt-2 px-5 py-2 rounded-full bg-yellow-400 text-black font-semibold hover:bg-yellow-300 transition-all duration-300 shadow"
+            >
+              Login
+            </button>
           </Link>
-          <button
-            type="button"
-            className="w-full mt-2 px-5 py-2 rounded-full bg-yellow-400 text-black font-semibold hover:bg-yellow-300 transition-all duration-300 shadow"
-          >
-            Login
-          </button>
         </div>
       )}
     </nav>

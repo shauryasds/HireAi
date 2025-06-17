@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -11,9 +10,9 @@ export default function Report() {
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/interview/report/${interviewId}`);
+        const res = await fetch(`http://localhost:3000/api/interview/report/${interviewId}`);
         if (!res.ok) throw new Error("Failed to fetch report");
-        
+
         const data = await res.json();
         setReport(data);
         setLoading(false);

@@ -1,9 +1,8 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 
 export default function Interview() {
-  const { sessionId } = useParams(); // This is the interviewId
+  const { sessionId } = useParams();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
@@ -15,9 +14,10 @@ export default function Interview() {
   const [speechSupported, setSpeechSupported] = useState(false);
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
-    // Initialize speech recognition and synthesis
+    // Initialize speech recognition
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       setSpeechSupported(true);
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -34,39 +34,53 @@ export default function Interview() {
           }
         }
         if (finalTranscript) {
-          handleAnswerChange(answers[currentQuestion] + finalTranscript);
+          handleAnswerChange(answers[currentQuestion] + ' ' + finalTranscript);
         }
       };
 
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
+      recognitionRef.current.onstart = () => setIsListening(true);
+      recognitionRef.current.onend = () => setIsListening(false);
+
+      recognitionRef.current.start(); // Start listening by default
     }
 
+    // Speech synthesis
     if ('speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
     }
 
-    // Get questions from the interview start
+    // Get webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch((err) => {
+        console.error("Webcam access denied", err);
+      });
+
+    // Load questions
     const storedQuestions = localStorage.getItem(`interview_${sessionId}`);
     if (storedQuestions) {
       const parsedQuestions = JSON.parse(storedQuestions);
       setQuestions(parsedQuestions);
       setAnswers(new Array(parsedQuestions.length).fill(''));
       setLoading(false);
-      // Speak the first question
       setTimeout(() => speakQuestion(parsedQuestions[0]), 1000);
     } else {
       setLoading(false);
     }
+
+    return () => {
+      const tracks = videoRef.current?.srcObject?.getTracks();
+      tracks?.forEach(track => track.stop());
+    };
   }, [sessionId]);
 
-  // Speak question when it changes
   useEffect(() => {
-    if (questions.length > 0 && currentQuestion >= 0) {
-      speakQuestion(questions[currentQuestion]);
-    }
-  }, [currentQuestion, questions]);
+    if (questions.length > 0) speakQuestion(questions[currentQuestion]);
+  }, [currentQuestion]);
 
   const handleAnswerChange = (value) => {
     const newAnswers = [...answers];
@@ -76,69 +90,30 @@ export default function Interview() {
 
   const speakQuestion = (question) => {
     if (synthRef.current && question) {
-      // Stop any ongoing speech
       synthRef.current.cancel();
-      
       const utterance = new SpeechSynthesisUtterance(question);
       utterance.rate = 0.8;
       utterance.pitch = 1;
       utterance.volume = 0.8;
-      
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
-      
       synthRef.current.speak(utterance);
     }
   };
 
-  const toggleListening = () => {
-    if (!speechSupported) {
-      alert('Speech recognition is not supported in your browser');
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  };
-
-  const stopSpeaking = () => {
-    if (synthRef.current) {
-      synthRef.current.cancel();
-      setIsSpeaking(false);
-    }
-  };
-
-  const nextQuestion = () => {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    }
-  };
-
-  const prevQuestion = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-    }
-  };
+  const nextQuestion = () => setCurrentQuestion((prev) => Math.min(prev + 1, questions.length - 1));
+  const prevQuestion = () => setCurrentQuestion((prev) => Math.max(prev - 1, 0));
 
   const submitInterview = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/interview/submit/${sessionId}`, {
+      const res = await fetch(`http://localhost:3000/api/interview/submit/${sessionId}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers }),
       });
 
       if (!res.ok) throw new Error("Failed to submit interview");
-
-      const data = await res.json();
       localStorage.removeItem(`interview_${sessionId}`);
       navigate(`/report/${sessionId}`);
     } catch (err) {
@@ -149,143 +124,90 @@ export default function Interview() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-yellow-400 font-semibold text-lg animate-pulse">
-        Loading interview...
-      </div>
-    );
-  }
-
-  if (questions.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-red-500 font-semibold text-lg">
-        Interview not found or expired
-      </div>
-    );
-  }
+  if (loading) return <div className="text-yellow-400 p-10">Loading interview...</div>;
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10 font-inter">
-      <div className="bg-[#111] border border-yellow-500/20 shadow-yellow-200/10 shadow-lg rounded-2xl p-8 w-full max-w-3xl text-white">
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-yellow-400">AI Interview</h1>
-            <span className="text-sm text-gray-400">
-              Question {currentQuestion + 1} of {questions.length}
-            </span>
+    <div className="min-h-screen bg-black text-white font-inter px-6 py-10 flex justify-center">
+      <div className="flex flex-col lg:flex-row w-full max-w-6xl gap-6">
+        {/* AI Section */}
+        <div className="flex-1 bg-[#111] rounded-xl border border-yellow-400/30 p-6 shadow-lg flex flex-col items-center justify-between">
+          <div className="text-center">
+            <div className="text-yellow-400 text-xl font-bold mb-2">AI Interviewer</div>
+            <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-yellow-300 via-yellow-500 to-yellow-400 flex items-center justify-center text-4xl">
+              🤖
+            </div>
           </div>
-          
-          <div className="w-full bg-gray-800 rounded-full h-2 mb-6">
-            <div 
-              className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
-            ></div>
+
+          <div className="mt-10 text-center">
+            <h2 className="text-lg font-semibold mb-2">{questions[currentQuestion]}</h2>
+            <button
+              onClick={() => speakQuestion(questions[currentQuestion])}
+              className="mt-2 text-sm bg-yellow-400 px-3 py-1 rounded-lg text-black hover:bg-yellow-300"
+            >
+              🔊 Repeat Question
+            </button>
           </div>
         </div>
 
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-white flex-1">
-              {questions[currentQuestion]}
-            </h2>
-            <div className="flex gap-2 ml-4">
-              {isSpeaking ? (
-                <button
-                  onClick={stopSpeaking}
-                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-400 transition text-sm"
-                  title="Stop speaking"
-                >
-                  🔇 Stop
-                </button>
-              ) : (
-                <button
-                  onClick={() => speakQuestion(questions[currentQuestion])}
-                  className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-400 transition text-sm"
-                  title="Read question aloud"
-                >
-                  🔊 Listen
-                </button>
-              )}
-            </div>
+        {/* Response & Webcam */}
+        <div className="flex-[2] bg-[#111] rounded-xl border border-yellow-400/30 p-6 shadow-lg relative">
+          <div className="absolute top-4 right-4">
+            <button className="text-white bg-gray-700 px-2 py-1 rounded hover:bg-gray-600 text-xs" title="Open chat">
+              💬 Chat
+            </button>
           </div>
-          
-          <div className="relative">
-            <textarea
-              value={answers[currentQuestion] || ''}
-              onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder="Type your answer here or use voice input..."
-              className="w-full h-32 bg-black border border-yellow-400/40 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition resize-none"
-              maxLength={500}
-            />
-            
-            {speechSupported && (
+
+          {/* Webcam */}
+          <div className={`w-36 h-36 rounded-full overflow-hidden mx-auto border-4 transition-all duration-500 ${isListening ? 'border-green-400 shadow-green-400 shadow-md' : 'border-gray-600'}`}>
+            <video ref={videoRef} autoPlay muted className="w-full h-full object-cover" />
+          </div>
+
+          {/* Textarea */}
+          <textarea
+            value={answers[currentQuestion] || ''}
+            onChange={(e) => handleAnswerChange(e.target.value)}
+            placeholder="Speak or type your answer..."
+            className="w-full mt-6 h-32 bg-black border border-yellow-400/40 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition resize-none"
+            maxLength={500}
+          />
+
+          <div className="flex justify-between mt-2 text-xs text-gray-400">
+            <span>{answers[currentQuestion]?.length || 0}/500 characters</span>
+            {speechSupported && <span>🎤 Voice active</span>}
+          </div>
+
+          <div className="mt-6 flex justify-between items-center">
+            <button
+              onClick={prevQuestion}
+              disabled={currentQuestion === 0}
+              className="px-5 py-2 bg-gray-600 text-white rounded-lg disabled:opacity-40 hover:bg-gray-500"
+            >
+              Previous
+            </button>
+
+            <div className="flex gap-2">
+              {questions.map((_, i) => (
+                <div key={i} className={`w-3 h-3 rounded-full ${i === currentQuestion ? 'bg-yellow-400' : answers[i] ? 'bg-green-500' : 'bg-gray-600'}`} />
+              ))}
+            </div>
+
+            {currentQuestion === questions.length - 1 ? (
               <button
-                onClick={toggleListening}
-                className={`absolute bottom-3 right-3 px-3 py-2 rounded-lg transition text-sm font-medium ${
-                  isListening 
-                    ? 'bg-red-500 text-white hover:bg-red-400 animate-pulse' 
-                    : 'bg-green-500 text-white hover:bg-green-400'
-                }`}
-                title={isListening ? 'Stop recording' : 'Start voice input'}
+                onClick={submitInterview}
+                disabled={submitting}
+                className="px-5 py-2 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-300 disabled:opacity-50"
               >
-                {isListening ? '🎤 Recording...' : '🎤 Voice'}
+                {submitting ? 'Submitting...' : 'Submit'}
+              </button>
+            ) : (
+              <button
+                onClick={nextQuestion}
+                className="px-5 py-2 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-300"
+              >
+                Next
               </button>
             )}
           </div>
-          
-          <div className="flex justify-between items-center mt-2">
-            <p className="text-xs text-gray-400">
-              {answers[currentQuestion]?.length || 0}/500 characters
-            </p>
-            {speechSupported && (
-              <p className="text-xs text-gray-400">
-                Click 🎤 Voice to speak your answer
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <button
-            onClick={prevQuestion}
-            disabled={currentQuestion === 0}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-
-          <div className="flex gap-2">
-            {questions.map((_, index) => (
-              <div
-                key={index}
-                className={`w-3 h-3 rounded-full ${
-                  index === currentQuestion 
-                    ? 'bg-yellow-400' 
-                    : answers[index] 
-                      ? 'bg-green-500' 
-                      : 'bg-gray-600'
-                }`}
-              />
-            ))}
-          </div>
-
-          {currentQuestion === questions.length - 1 ? (
-            <button
-              onClick={submitInterview}
-              disabled={submitting}
-              className="px-6 py-2 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-300 transition disabled:opacity-50"
-            >
-              {submitting ? 'Submitting...' : 'Submit Interview'}
-            </button>
-          ) : (
-            <button
-              onClick={nextQuestion}
-              className="px-6 py-2 bg-yellow-400 text-black font-semibold rounded-lg hover:bg-yellow-300 transition"
-            >
-              Next
-            </button>
-          )}
         </div>
       </div>
     </div>
