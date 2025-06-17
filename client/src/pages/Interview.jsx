@@ -1,6 +1,6 @@
 
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function Interview() {
   const { sessionId } = useParams(); // This is the interviewId
@@ -10,25 +10,107 @@ export default function Interview() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef(null);
+  const synthRef = useRef(null);
 
   useEffect(() => {
-    // Get questions from the interview start (we'll need to modify the flow)
-    // For now, we'll fetch from localStorage or make an API call
+    // Initialize speech recognition and synthesis
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      setSpeechSupported(true);
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        if (finalTranscript) {
+          handleAnswerChange(answers[currentQuestion] + finalTranscript);
+        }
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    if ('speechSynthesis' in window) {
+      synthRef.current = window.speechSynthesis;
+    }
+
+    // Get questions from the interview start
     const storedQuestions = localStorage.getItem(`interview_${sessionId}`);
     if (storedQuestions) {
       const parsedQuestions = JSON.parse(storedQuestions);
       setQuestions(parsedQuestions);
       setAnswers(new Array(parsedQuestions.length).fill(''));
       setLoading(false);
+      // Speak the first question
+      setTimeout(() => speakQuestion(parsedQuestions[0]), 1000);
     } else {
       setLoading(false);
     }
   }, [sessionId]);
 
+  // Speak question when it changes
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestion >= 0) {
+      speakQuestion(questions[currentQuestion]);
+    }
+  }, [currentQuestion, questions]);
+
   const handleAnswerChange = (value) => {
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = value;
     setAnswers(newAnswers);
+  };
+
+  const speakQuestion = (question) => {
+    if (synthRef.current && question) {
+      // Stop any ongoing speech
+      synthRef.current.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(question);
+      utterance.rate = 0.8;
+      utterance.pitch = 1;
+      utterance.volume = 0.8;
+      
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      
+      synthRef.current.speak(utterance);
+    }
+  };
+
+  const toggleListening = () => {
+    if (!speechSupported) {
+      alert('Speech recognition is not supported in your browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  const stopSpeaking = () => {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+      setIsSpeaking(false);
+    }
   };
 
   const nextQuestion = () => {
@@ -103,19 +185,65 @@ export default function Interview() {
         </div>
 
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-white">
-            {questions[currentQuestion]}
-          </h2>
-          <textarea
-            value={answers[currentQuestion] || ''}
-            onChange={(e) => handleAnswerChange(e.target.value)}
-            placeholder="Type your answer here..."
-            className="w-full h-32 bg-black border border-yellow-400/40 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition resize-none"
-            maxLength={500}
-          />
-          <p className="text-xs text-gray-400 mt-2">
-            {answers[currentQuestion]?.length || 0}/500 characters
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-white flex-1">
+              {questions[currentQuestion]}
+            </h2>
+            <div className="flex gap-2 ml-4">
+              {isSpeaking ? (
+                <button
+                  onClick={stopSpeaking}
+                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-400 transition text-sm"
+                  title="Stop speaking"
+                >
+                  🔇 Stop
+                </button>
+              ) : (
+                <button
+                  onClick={() => speakQuestion(questions[currentQuestion])}
+                  className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-400 transition text-sm"
+                  title="Read question aloud"
+                >
+                  🔊 Listen
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="relative">
+            <textarea
+              value={answers[currentQuestion] || ''}
+              onChange={(e) => handleAnswerChange(e.target.value)}
+              placeholder="Type your answer here or use voice input..."
+              className="w-full h-32 bg-black border border-yellow-400/40 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition resize-none"
+              maxLength={500}
+            />
+            
+            {speechSupported && (
+              <button
+                onClick={toggleListening}
+                className={`absolute bottom-3 right-3 px-3 py-2 rounded-lg transition text-sm font-medium ${
+                  isListening 
+                    ? 'bg-red-500 text-white hover:bg-red-400 animate-pulse' 
+                    : 'bg-green-500 text-white hover:bg-green-400'
+                }`}
+                title={isListening ? 'Stop recording' : 'Start voice input'}
+              >
+                {isListening ? '🎤 Recording...' : '🎤 Voice'}
+              </button>
+            )}
+          </div>
+          
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-gray-400">
+              {answers[currentQuestion]?.length || 0}/500 characters
+            </p>
+            {speechSupported && (
+              <p className="text-xs text-gray-400">
+                Click 🎤 Voice to speak your answer
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-between items-center">
