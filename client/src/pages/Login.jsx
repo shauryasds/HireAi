@@ -1,31 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const navigate = useNavigate();
-
+const {login}=useAuth();
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-        credentials: "include",
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        alert("Login successful!");
-        // save token/user in localStorage or context if needed
+     
+      const res= await login(form.email, form.password)
+  
+   
+   if (res.success) {
         navigate("/");
       } else {
-        const data = await res.json();
-        alert(data.error || "Login failed");
+        alert("Login failed");
       }
     } catch (err) {
       alert("Error occurred");
