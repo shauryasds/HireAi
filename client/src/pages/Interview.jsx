@@ -18,26 +18,38 @@ export default function Interview() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [timer, setTimer] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  
+
   // New states for monitoring
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
-  const [warningMessage, setWarningMessage] = useState('');
+  const [warningMessage, setWarningMessage] = useState("");
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [videoStream, setVideoStream] = useState(null);
-  const [currentAnswer, setCurrentAnswer] = useState('');
-  
+  const [currentAnswer, setCurrentAnswer] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const containerRef = useRef(null);
 
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Timer functionality
   useEffect(() => {
     if (isTimerRunning) {
       timerRef.current = setInterval(() => {
-        setTimer(prev => prev + 1);
+        setTimer((prev) => prev + 1);
       }, 1000);
     } else {
       clearInterval(timerRef.current);
@@ -49,11 +61,15 @@ export default function Interview() {
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Enhanced fullscreen functionality
+  // Enhanced fullscreen functionality - Skip on mobile
   const enterFullscreen = async () => {
+    if (isMobile) {
+      return true; // Skip fullscreen on mobile
+    }
+    
     try {
       if (containerRef.current?.requestFullscreen) {
         await containerRef.current.requestFullscreen();
@@ -74,12 +90,14 @@ export default function Interview() {
       }
       return false;
     } catch (error) {
-      console.error('Fullscreen request failed:', error);
+      console.error("Fullscreen request failed:", error);
       return false;
     }
   };
 
   const exitFullscreen = () => {
+    if (isMobile) return;
+    
     if (document.exitFullscreen) {
       document.exitFullscreen();
     } else if (document.webkitExitFullscreen) {
@@ -103,52 +121,66 @@ export default function Interview() {
     setSubmitting(true);
     setIsTimerRunning(false);
     finishCandidateResponse();
-    
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3000'}/api/interview/submit/${sessionId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          answers, 
-          duration: timer,
-          autoSubmitted: true,
-          reason: 'Multiple violations detected'
-        }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_API_URL || "http://localhost:3000"}/api/interview/submit/${sessionId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            answers,
+            duration: timer,
+            autoSubmitted: true,
+            reason: "Multiple violations detected",
+          }),
+        },
+      );
 
       if (!res.ok) throw new Error("Failed to submit interview");
       localStorage.removeItem(`interview_${sessionId}`);
-      if (document.fullscreenElement) {
+      if (document.fullscreenElement && !isMobile) {
         await exitFullscreen();
       }
       navigate(`/report/${sessionId}`);
     } catch (err) {
       console.error(err);
       alert("Interview auto-submitted due to violations");
-      navigate('/');
+      navigate("/");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Monitor fullscreen changes
+  // Monitor fullscreen changes - Skip on mobile
   useEffect(() => {
+    if (isMobile) return;
+    
     const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
       setIsFullscreen(isCurrentlyFullscreen);
-      
+
       // If interview started and user exits fullscreen
       if (interviewStarted && !isCurrentlyFullscreen && !submitting) {
-        setTabSwitchCount(prev => {
+        setTabSwitchCount((prev) => {
           const newCount = prev + 1;
           if (newCount === 1) {
-            showWarningModal('⚠️ Warning: You must stay in fullscreen mode during the interview. This is warning 1/2.');
+            showWarningModal(
+              "⚠️ Warning: You must stay in fullscreen mode during the interview. This is warning 1/2.",
+            );
             // Force back to fullscreen after warning
             setTimeout(() => {
               enterFullscreen();
             }, 3000);
           } else if (newCount >= 2) {
-            showWarningModal('❌ Interview terminated: You have exited fullscreen mode multiple times. The interview will now be auto-submitted.');
+            showWarningModal(
+              "❌ Interview terminated: You have exited fullscreen mode multiple times. The interview will now be auto-submitted.",
+            );
             setTimeout(() => {
               autoSubmitInterview();
             }, 3000);
@@ -158,29 +190,42 @@ export default function Interview() {
       }
     };
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-    
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange,
+      );
+      document.removeEventListener(
+        "mozfullscreenchange",
+        handleFullscreenChange,
+      );
+      document.removeEventListener(
+        "MSFullscreenChange",
+        handleFullscreenChange,
+      );
     };
-  }, [interviewStarted, submitting]);
+  }, [interviewStarted, submitting, isMobile]);
 
   // Monitor tab visibility changes
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && interviewStarted && !submitting) {
-        setTabSwitchCount(prev => {
+        setTabSwitchCount((prev) => {
           const newCount = prev + 1;
           if (newCount === 1) {
-            showWarningModal('⚠️ Warning: Tab switching is not allowed during the interview. This is warning 1/2.');
+            showWarningModal(
+              "⚠️ Warning: Tab switching is not allowed during the interview. This is warning 1/2.",
+            );
           } else if (newCount >= 2) {
-            showWarningModal('❌ Interview terminated: Multiple tab switches detected. The interview will now be auto-submitted.');
+            showWarningModal(
+              "❌ Interview terminated: Multiple tab switches detected. The interview will now be auto-submitted.",
+            );
             setTimeout(() => {
               autoSubmitInterview();
             }, 3000);
@@ -190,86 +235,106 @@ export default function Interview() {
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [interviewStarted, submitting]);
 
   // Prevent common keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!interviewStarted) return;
-      
+
       // Prevent Alt+Tab, Ctrl+Tab, Cmd+Tab, F11, Escape, etc.
       const preventedKeys = [
-        (e.altKey && e.key === 'Tab'),
-        (e.ctrlKey && e.key === 'Tab'),
-        (e.metaKey && e.key === 'Tab'),
-        (e.key === 'F11'),
-        (e.key === 'Escape' && document.fullscreenElement),
-        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')), // Dev tools
-        (e.key === 'F12'), // Dev tools
-        (e.ctrlKey && e.key === 'u'), // View source
-        (e.ctrlKey && e.key === 'r'), // Refresh
-        (e.key === 'F5'), // Refresh
+        e.altKey && e.key === "Tab",
+        e.ctrlKey && e.key === "Tab",
+        e.metaKey && e.key === "Tab",
+        e.key === "F11",
+        e.key === "Escape" && document.fullscreenElement && !isMobile,
+        e.ctrlKey &&
+          e.shiftKey &&
+          (e.key === "I" || e.key === "C" || e.key === "J"), // Dev tools
+        e.key === "F12", // Dev tools
+        e.ctrlKey && e.key === "u", // View source
+        e.ctrlKey && e.key === "r", // Refresh
+        e.key === "F5", // Refresh
       ];
 
-      if (preventedKeys.some(condition => condition)) {
+      if (preventedKeys.some((condition) => condition)) {
         e.preventDefault();
         e.stopPropagation();
-        showWarningModal('⚠️ Keyboard shortcuts are disabled during the interview.');
+        showWarningModal(
+          "⚠️ Keyboard shortcuts are disabled during the interview.",
+        );
         return false;
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [interviewStarted]);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [interviewStarted, isMobile]);
 
   // Prevent right-click context menu
   useEffect(() => {
     const handleContextMenu = (e) => {
       if (interviewStarted) {
         e.preventDefault();
-        showWarningModal('⚠️ Right-click is disabled during the interview.');
+        showWarningModal("⚠️ Right-click is disabled during the interview.");
       }
     };
 
-    document.addEventListener('contextmenu', handleContextMenu);
-    return () => document.removeEventListener('contextmenu', handleContextMenu);
+    document.addEventListener("contextmenu", handleContextMenu);
+    return () => document.removeEventListener("contextmenu", handleContextMenu);
   }, [interviewStarted]);
 
   // Start interview function
   const startInterview = async () => {
     try {
-      const success = await enterFullscreen();
-      if (success) {
+      if (isMobile) {
         setInterviewStarted(true);
         setIsTimerRunning(true);
         setTimeout(() => {
           speakQuestion(questions[0]);
         }, 1000);
       } else {
-        alert('Fullscreen mode is required to start the interview. Please allow fullscreen access.');
+        const success = await enterFullscreen();
+        if (success) {
+          setInterviewStarted(true);
+          setIsTimerRunning(true);
+          setTimeout(() => {
+            speakQuestion(questions[0]);
+          }, 1000);
+        } else {
+          alert(
+            "Fullscreen mode is required to start the interview. Please allow fullscreen access.",
+          );
+        }
       }
     } catch (error) {
-      alert('Fullscreen mode is required to start the interview. Please allow fullscreen access.');
+      if (!isMobile) {
+        alert(
+          "Fullscreen mode is required to start the interview. Please allow fullscreen access.",
+        );
+      }
     }
   };
 
   useEffect(() => {
     // Initialize speech recognition with better error handling
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
       setSpeechSupported(true);
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.lang = "en-US";
 
       recognitionRef.current.onresult = (event) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-        
+        let finalTranscript = "";
+        let interimTranscript = "";
+
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
@@ -278,44 +343,90 @@ export default function Interview() {
             interimTranscript += transcript;
           }
         }
-        
+
         if (finalTranscript && candidateSpeaking) {
-          setCurrentAnswer(prev => (prev + ' ' + finalTranscript).trim());
-          handleAnswerChange((answers[currentQuestion] || '') + ' ' + finalTranscript);
+          setCurrentAnswer((prev) => (prev + " " + finalTranscript).trim());
+          handleAnswerChange(
+            (answers[currentQuestion] || "") + " " + finalTranscript,
+          );
         }
       };
 
       recognitionRef.current.onstart = () => setIsListening(true);
-      recognitionRef.current.onend = () => setIsListening(false);
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
+      recognitionRef.current.onend = () => {
         setIsListening(false);
+        // Auto-restart if still supposed to be listening
+        if (candidateSpeaking && speechSupported) {
+          setTimeout(() => {
+            try {
+              recognitionRef.current?.start();
+            } catch (error) {
+              console.log("Speech recognition restart failed:", error);
+            }
+          }, 100);
+        }
+      };
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        // Auto-restart on certain errors
+        if (event.error === 'no-speech' || event.error === 'audio-capture') {
+          setTimeout(() => {
+            if (candidateSpeaking && speechSupported) {
+              try {
+                recognitionRef.current?.start();
+              } catch (error) {
+                console.log("Speech recognition restart failed:", error);
+              }
+            }
+          }, 1000);
+        }
       };
     }
 
     // Speech synthesis with better browser support
-    if ('speechSynthesis' in window) {
+    if ("speechSynthesis" in window) {
       synthRef.current = window.speechSynthesis;
     }
 
-    // Get webcam with better error handling
+    // Get webcam with better error handling and mobile optimization
     const initializeCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
+        const constraints = {
+          video: {
+            width: isMobile ? { ideal: 640 } : { ideal: 1280 },
+            height: isMobile ? { ideal: 480 } : { ideal: 720 },
+            facingMode: "user",
           },
-          audio: false 
-        });
+          audio: true, // Enable audio for speech recognition
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         setVideoStream(stream);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
       } catch (err) {
-        console.error("Camera access denied:", err);
-        alert("Camera access is required for the interview. Please allow camera access and refresh the page.");
+        console.error("Camera/microphone access denied:", err);
+        // Try video only if audio fails
+        try {
+          const videoOnlyStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: isMobile ? { ideal: 640 } : { ideal: 1280 },
+              height: isMobile ? { ideal: 480 } : { ideal: 720 },
+              facingMode: "user",
+            }
+          });
+          setVideoStream(videoOnlyStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = videoOnlyStream;
+          }
+        } catch (videoErr) {
+          console.error("Video access also failed:", videoErr);
+          alert(
+            "Camera and microphone access is required for the interview. Please allow access and refresh the page.",
+          );
+        }
       }
     };
 
@@ -326,7 +437,7 @@ export default function Interview() {
     if (storedQuestions) {
       const parsedQuestions = JSON.parse(storedQuestions);
       setQuestions(parsedQuestions);
-      setAnswers(new Array(parsedQuestions.length).fill(''));
+      setAnswers(new Array(parsedQuestions.length).fill(""));
       setLoading(false);
     } else {
       // If no stored questions, create some default ones
@@ -335,18 +446,21 @@ export default function Interview() {
         "What interests you about this position?",
         "What are your greatest strengths?",
         "Describe a challenging project you've worked on.",
-        "Where do you see yourself in 5 years?"
+        "Where do you see yourself in 5 years?",
       ];
       setQuestions(defaultQuestions);
-      setAnswers(new Array(defaultQuestions.length).fill(''));
-      localStorage.setItem(`interview_${sessionId}`, JSON.stringify(defaultQuestions));
+      setAnswers(new Array(defaultQuestions.length).fill(""));
+      localStorage.setItem(
+        `interview_${sessionId}`,
+        JSON.stringify(defaultQuestions),
+      );
       setLoading(false);
     }
 
     return () => {
       // Cleanup
       if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
+        videoStream.getTracks().forEach((track) => track.stop());
       }
       if (recognitionRef.current && isListening) {
         recognitionRef.current.stop();
@@ -356,7 +470,7 @@ export default function Interview() {
       }
       clearInterval(timerRef.current);
     };
-  }, [sessionId]);
+  }, [sessionId, isMobile]);
 
   const handleAnswerChange = (value) => {
     const newAnswers = [...answers];
@@ -369,7 +483,7 @@ export default function Interview() {
       synthRef.current.cancel();
       setInterviewerFinished(false);
       setCandidateSpeaking(false);
-      
+
       const utterance = new SpeechSynthesisUtterance(question);
       utterance.rate = 0.8;
       utterance.pitch = 1;
@@ -380,7 +494,7 @@ export default function Interview() {
         setInterviewerFinished(true);
       };
       utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event.error);
+        console.error("Speech synthesis error:", event.error);
         setIsSpeaking(false);
         setInterviewerFinished(true);
       };
@@ -390,12 +504,12 @@ export default function Interview() {
 
   const startCandidateResponse = () => {
     setCandidateSpeaking(true);
-    setCurrentAnswer('');
-    if (recognitionRef.current && !isListening) {
+    setCurrentAnswer("");
+    if (recognitionRef.current && !isListening && speechSupported) {
       try {
         recognitionRef.current.start();
       } catch (error) {
-        console.error('Failed to start speech recognition:', error);
+        console.error("Failed to start speech recognition:", error);
       }
     }
   };
@@ -406,7 +520,7 @@ export default function Interview() {
       try {
         recognitionRef.current.stop();
       } catch (error) {
-        console.error('Failed to stop speech recognition:', error);
+        console.error("Failed to stop speech recognition:", error);
       }
     }
   };
@@ -426,17 +540,20 @@ export default function Interview() {
     setSubmitting(true);
     setIsTimerRunning(false);
     finishCandidateResponse();
-    
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3000'}/api/interview/submit/${sessionId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers, duration: timer }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_API_URL || "http://localhost:3000"}/api/interview/submit/${sessionId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers, duration: timer }),
+        },
+      );
 
       if (!res.ok) throw new Error("Failed to submit interview");
       localStorage.removeItem(`interview_${sessionId}`);
-      if (document.fullscreenElement) {
+      if (document.fullscreenElement && !isMobile) {
         await exitFullscreen();
       }
       navigate(`/report/${sessionId}`);
@@ -448,34 +565,42 @@ export default function Interview() {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
-      <div className="text-yellow-400 text-xl animate-pulse">Loading interview...</div>
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-yellow-400 text-xl animate-pulse">
+          Loading interview...
+        </div>
+      </div>
+    );
 
   // Show start screen if interview hasn't started
   if (!interviewStarted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white font-inter p-4">
         <div className="text-center max-w-2xl w-full">
-          <h1 className="text-2xl md:text-4xl font-bold text-yellow-400 mb-6">Interview Ready</h1>
+          <h1 className="text-2xl md:text-4xl font-bold text-yellow-400 mb-6">
+            Interview Ready
+          </h1>
           <div className="text-sm md:text-lg text-gray-300 mb-8 space-y-4">
-            <p>⚠️ <strong>Important Guidelines:</strong></p>
+            <p>
+              ⚠️ <strong>Important Guidelines:</strong>
+            </p>
             <ul className="text-left space-y-2 bg-gray-900 p-4 md:p-6 rounded-lg text-xs md:text-sm">
-              <li>• This interview must be completed in fullscreen mode</li>
-              <li>• Tab switching is not allowed during the interview</li>
+              {!isMobile && <li>• This interview must be completed in fullscreen mode</li>}
+              <li>• Tab switching is monitored during the interview</li>
               <li>• Keyboard shortcuts will be disabled</li>
               <li>• You will receive 1 warning for violations</li>
               <li>• After 2 violations, the interview will auto-submit</li>
               <li>• Ensure your webcam and microphone are working</li>
+              {isMobile && <li>• Mobile users: Please don't switch between apps during the interview</li>}
             </ul>
           </div>
           <button
             onClick={startInterview}
             className="bg-yellow-400 text-black px-6 md:px-8 py-3 md:py-4 rounded-lg text-lg md:text-xl font-semibold hover:bg-yellow-300 transition-all duration-200 w-full md:w-auto"
           >
-            🚀 Start Interview (Enter Fullscreen)
+            🚀 Start Interview {!isMobile && "(Enter Fullscreen)"}
           </button>
         </div>
       </div>
@@ -483,16 +608,20 @@ export default function Interview() {
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="fixed inset-0 z-50 bg-black text-white font-inter overflow-hidden"
+      className={`${isMobile ? 'min-h-screen' : 'fixed inset-0'} z-50 bg-black text-white font-inter overflow-hidden`}
     >
       {/* Warning Modal */}
       {showWarning && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[100] p-4">
           <div className="bg-red-900 border-2 border-red-500 rounded-lg p-6 md:p-8 max-w-md w-full text-center">
-            <h2 className="text-xl md:text-2xl font-bold text-red-400 mb-4">⚠️ WARNING</h2>
-            <p className="text-white mb-6 text-sm md:text-base">{warningMessage}</p>
+            <h2 className="text-xl md:text-2xl font-bold text-red-400 mb-4">
+              ⚠️ WARNING
+            </h2>
+            <p className="text-white mb-6 text-sm md:text-base">
+              {warningMessage}
+            </p>
             <button
               onClick={() => setShowWarning(false)}
               className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-400 transition-all duration-200"
@@ -518,28 +647,37 @@ export default function Interview() {
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="bg-green-600 px-2 md:px-3 py-1 rounded text-xs md:text-sm">
             🔒 Secure
           </div>
+          {isMobile && (
+            <div className="bg-blue-600 px-2 md:px-3 py-1 rounded text-xs">
+              📱 Mobile
+            </div>
+          )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row h-full pt-12 md:pt-16">
+      <div className="flex flex-col lg:flex-row h-full pt-12 md:pt-16">
         {/* AI Interviewer Section */}
-        <div className="w-full md:w-1/2 bg-[#111] border-b md:border-b-0 md:border-r border-yellow-400/30 p-4 md:p-8 flex flex-col items-center justify-center min-h-[40vh] md:min-h-full">
+        <div className="w-full lg:w-1/2 bg-[#111] border-b lg:border-b-0 lg:border-r border-yellow-400/30 p-4 md:p-8 flex flex-col items-center justify-center min-h-[40vh] lg:min-h-full">
           <div className="text-center">
-            <div className="text-yellow-400 text-lg md:text-2xl font-bold mb-4">AI Interviewer</div>
-            <div className={`w-24 h-24 md:w-48 md:h-48 rounded-full flex items-center justify-center text-3xl md:text-6xl transition-all duration-300 ${
-              isSpeaking 
-                ? 'bg-gradient-to-tr from-green-400 via-green-500 to-green-300 animate-pulse shadow-green-400 shadow-2xl' 
-                : 'bg-gradient-to-tr from-yellow-300 via-yellow-500 to-yellow-400'
-            }`}>
+            <div className="text-yellow-400 text-lg md:text-2xl font-bold mb-4">
+              AI Interviewer
+            </div>
+            <div
+              className={`w-20 h-20 md:w-32 md:h-32 lg:w-48 lg:h-48 rounded-full flex items-center justify-center text-2xl md:text-4xl lg:text-6xl transition-all duration-300 ${
+                isSpeaking
+                  ? "bg-gradient-to-tr from-green-400 via-green-500 to-green-300 animate-pulse shadow-green-400 shadow-2xl"
+                  : "bg-gradient-to-tr from-yellow-300 via-yellow-500 to-yellow-400"
+              }`}
+            >
               🤖
             </div>
-            
+
             {isSpeaking && (
               <div className="mt-4 text-green-400 font-semibold animate-pulse text-sm md:text-base">
                 Speaking...
@@ -548,31 +686,35 @@ export default function Interview() {
           </div>
 
           <div className="mt-4 md:mt-8 text-center max-w-md">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 text-yellow-400">
+            <h2 className="text-base md:text-lg lg:text-xl font-semibold mb-4 text-yellow-400">
               {questions[currentQuestion]}
             </h2>
           </div>
         </div>
 
         {/* Candidate Section */}
-        <div className="w-full md:w-1/2 bg-[#0a0a0a] p-4 md:p-8 flex flex-col items-center justify-center min-h-[60vh] md:min-h-full">
+        <div className="w-full lg:w-1/2 bg-[#0a0a0a] p-4 md:p-8 flex flex-col items-center justify-center min-h-[60vh] lg:min-h-full">
           <div className="text-center mb-4 md:mb-8 w-full">
-            <div className="text-yellow-400 text-lg md:text-2xl font-bold mb-4">You</div>
-            
+            <div className="text-yellow-400 text-lg md:text-2xl font-bold mb-4">
+              You
+            </div>
+
             {/* Live Camera Feed */}
-            <div className={`w-32 h-24 md:w-80 md:h-56 rounded-lg overflow-hidden mx-auto border-4 transition-all duration-300 ${
-              candidateSpeaking 
-                ? 'border-red-500 shadow-red-500 shadow-2xl animate-pulse' 
-                : isListening 
-                ? 'border-green-400 shadow-green-400 shadow-md' 
-                : 'border-gray-600'
-            }`}>
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                muted 
+            <div
+              className={`w-40 h-30 md:w-60 md:h-44 lg:w-80 lg:h-56 rounded-lg overflow-hidden mx-auto border-4 transition-all duration-300 ${
+                candidateSpeaking
+                  ? "border-red-500 shadow-red-500 shadow-2xl animate-pulse"
+                  : isListening
+                    ? "border-green-400 shadow-green-400 shadow-md"
+                    : "border-gray-600"
+              }`}
+            >
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
                 playsInline
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover"
               />
             </div>
 
@@ -587,21 +729,24 @@ export default function Interview() {
           <div className="w-full max-w-md">
             <div className="bg-black border border-yellow-400/40 rounded-xl p-3 md:p-4 mb-4 min-h-20 md:min-h-32">
               <div className="text-gray-300 text-sm md:text-base max-h-24 md:max-h-32 overflow-y-auto">
-                {answers[currentQuestion] || "Your response will appear here..."}
+                {answers[currentQuestion] ||
+                  "Your response will appear here..."}
               </div>
             </div>
 
             <div className="text-xs text-gray-400 mb-4 md:mb-6 text-center">
-              {speechSupported ? "🎤 Voice recognition active" : "Voice not supported - Please type your response"}
+              {speechSupported
+                ? "🎤 Voice recognition active"
+                : "Voice not supported - Please type your response"}
             </div>
 
             {/* Manual text input for backup */}
             {!speechSupported && (
               <textarea
-                value={answers[currentQuestion] || ''}
+                value={answers[currentQuestion] || ""}
                 onChange={(e) => handleAnswerChange(e.target.value)}
                 placeholder="Type your response here..."
-                className="w-full bg-gray-800 text-white p-3 rounded-lg mb-4 min-h-24 resize-none"
+                className="w-full bg-gray-800 text-white p-3 rounded-lg mb-4 min-h-24 resize-none text-sm md:text-base"
               />
             )}
 
@@ -632,7 +777,7 @@ export default function Interview() {
                       disabled={submitting}
                       className="flex-1 bg-yellow-400 text-black px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-yellow-300 disabled:opacity-50 transition-all duration-200 text-sm md:text-base"
                     >
-                      {submitting ? 'Submitting...' : '✅ Submit Interview'}
+                      {submitting ? "Submitting..." : "✅ Submit Interview"}
                     </button>
                   ) : (
                     <button
@@ -650,15 +795,15 @@ export default function Interview() {
           {/* Progress Indicator */}
           <div className="flex gap-1 md:gap-2 mt-4 md:mt-6">
             {questions.map((_, i) => (
-              <div 
-                key={i} 
-                className={`w-3 h-3 md:w-4 md:h-4 rounded-full transition-all duration-300 ${
-                  i === currentQuestion 
-                    ? 'bg-yellow-400 scale-125' 
-                    : answers[i] 
-                    ? 'bg-green-500' 
-                    : 'bg-gray-600'
-                }`} 
+              <div
+                key={i}
+                className={`w-2 h-2 md:w-3 md:h-3 lg:w-4 lg:h-4 rounded-full transition-all duration-300 ${
+                  i === currentQuestion
+                    ? "bg-yellow-400 scale-125"
+                    : answers[i]
+                      ? "bg-green-500"
+                      : "bg-gray-600"
+                }`}
               />
             ))}
           </div>
