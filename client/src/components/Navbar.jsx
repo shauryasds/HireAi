@@ -1,7 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react'; // icons
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -27,8 +26,8 @@ export default function Navbar() {
 
         {/* Hamburger for mobile */}
         <div className="md:hidden">
-          <button onClick={toggleMenu} className="text-white">
-            {menuOpen ? <X size={28} /> : <Menu size={28} />}
+          <button onClick={toggleMenu} className="text-white text-2xl">
+            {menuOpen ? '✕' : '☰'}
           </button>
         </div>
 
