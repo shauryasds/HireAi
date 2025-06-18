@@ -111,79 +111,81 @@ export default function MyJobs() {
           <div className="grid gap-6">
             {jobs.map((job) => (
               <div
-                key={job._id}
-                className="bg-[#111] border border-yellow-400/20 rounded-xl p-6 hover:border-yellow-400/40 transition"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-semibold text-white">{job.title}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        job.isActive 
-                          ? 'bg-green-400/20 text-green-300' 
-                          : 'bg-gray-400/20 text-gray-300'
-                      }`}>
-                        {job.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    
-                    <p className="text-gray-400 mb-2">{job.company} • {job.location}</p>
-                    <p className="text-gray-300 text-sm mb-4 line-clamp-2">{job.description}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {job.skillsRequired?.slice(0, 4).map((skill, index) => (
-                        <span key={index} className="bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded text-xs">
-                          {skill}
-                        </span>
-                      ))}
-                      {job.skillsRequired?.length > 4 && (
-                        <span className="text-gray-400 text-xs px-2 py-1">
-                          +{job.skillsRequired.length - 4} more
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
-                      <span>Experience: {job.experienceRequired}</span>
-                      <span>Type: {job.type}</span>
-                      <span>Applications: {job.applicants?.length || 0}</span>
-                      <span>Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 ml-4">
-                    <button
-                      onClick={() => handleShare(job._id)}
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                    >
-                      Share Link
-                    </button>
-                    
-                    <Link
-                      to={`/apply-job/${job._id}`}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition text-center"
-                    >
-                      View Job
-                    </Link>
-                    
-                    <button
-                      onClick={() => handleDelete(job._id)}
-                      disabled={deleting === job._id}
-                      className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                    >
-                      {deleting === job._id ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </div>
-                </div>
-
-                {job.salaryRange && (
-                  <div className="mt-4 pt-4 border-t border-gray-700">
-                    <span className="text-green-400 font-semibold">
-                      ₹{job.salaryRange.min?.toLocaleString()} - ₹{job.salaryRange.max?.toLocaleString()} {job.salaryRange.currency}
+              key={job._id}
+              className="bg-[#111] border border-yellow-400/20 rounded-xl p-6 hover:border-yellow-400/40 transition"
+            >
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 mb-2">
+                    <h3 className="text-xl font-semibold text-white">{job.title}</h3>
+                    <span className={`mt-2 sm:mt-0 px-2 py-1 rounded-full text-xs font-medium ${
+                      job.isActive 
+                        ? 'bg-green-400/20 text-green-300' 
+                        : 'bg-gray-400/20 text-gray-300'
+                    }`}>
+                      {job.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                )}
+            
+                  <p className="text-gray-400 mb-2">{job.company} • {job.location}</p>
+                  <p className="text-gray-300 text-sm mb-4 line-clamp-2">{job.description}</p>
+            
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {job.skillsRequired?.slice(0, 4).map((skill, index) => (
+                      <span key={index} className="bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded text-xs">
+                        {skill}
+                      </span>
+                    ))}
+                    {job.skillsRequired?.length > 4 && (
+                      <span className="text-gray-400 text-xs px-2 py-1">
+                        +{job.skillsRequired.length - 4} more
+                      </span>
+                    )}
+                  </div>
+            
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                    <span>Experience: {job.experienceRequired}</span>
+                    <span>Type: {job.type}</span>
+                    <span>Applications: {job.applicants?.length || 0}</span>
+                    <span>Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+            
+                {/* Right section - action buttons */}
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2 md:ml-4 w-full md:w-auto">
+                  <button
+                    onClick={() => handleShare(job._id)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition w-full md:w-auto"
+                  >
+                    Share Link
+                  </button>
+            
+                  <Link
+                    to={`/apply-job/${job._id}`}
+                    className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition text-center w-full md:w-auto"
+                  >
+                    View Job
+                  </Link>
+            
+                  <button
+                    onClick={() => handleDelete(job._id)}
+                    disabled={deleting === job._id}
+                    className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition w-full md:w-auto"
+                  >
+                    {deleting === job._id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
               </div>
+            
+              {job.salaryRange && (
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <span className="text-green-400 font-semibold">
+                    ₹{job.salaryRange.min?.toLocaleString()} - ₹{job.salaryRange.max?.toLocaleString()} {job.salaryRange.currency}
+                  </span>
+                </div>
+              )}
+            </div>
+            
             ))}
           </div>
         )}
