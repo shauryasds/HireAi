@@ -27,6 +27,7 @@ export default function Interview() {
   const [videoStream, setVideoStream] = useState(null);
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(null);
@@ -344,11 +345,16 @@ export default function Interview() {
           }
         }
 
+        // Update live transcript display
+        setLiveTranscript(interimTranscript);
+
         if (finalTranscript && candidateSpeaking) {
           setCurrentAnswer((prev) => (prev + " " + finalTranscript).trim());
           handleAnswerChange(
             (answers[currentQuestion] || "") + " " + finalTranscript,
           );
+          // Clear live transcript when final result is processed
+          setLiveTranscript("");
         }
       };
 
@@ -505,6 +511,7 @@ export default function Interview() {
   const startCandidateResponse = () => {
     setCandidateSpeaking(true);
     setCurrentAnswer("");
+    setLiveTranscript("");
     if (recognitionRef.current && !isListening && speechSupported) {
       try {
         recognitionRef.current.start();
@@ -516,6 +523,7 @@ export default function Interview() {
 
   const finishCandidateResponse = () => {
     setCandidateSpeaking(false);
+    setLiveTranscript("");
     if (recognitionRef.current && isListening) {
       try {
         recognitionRef.current.stop();
@@ -729,14 +737,20 @@ export default function Interview() {
           <div className="w-full max-w-md">
             <div className="bg-black border border-yellow-400/40 rounded-xl p-3 md:p-4 mb-4 min-h-20 md:min-h-32">
               <div className="text-gray-300 text-sm md:text-base max-h-24 md:max-h-32 overflow-y-auto">
-                {answers[currentQuestion] ||
-                  "Your response will appear here..."}
+                {answers[currentQuestion] || "Your response will appear here..."}
+                {liveTranscript && (
+                  <span className="text-blue-400 italic">
+                    {" "}{liveTranscript}
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="text-xs text-gray-400 mb-4 md:mb-6 text-center">
               {speechSupported
-                ? "🎤 Voice recognition active"
+                ? isListening
+                  ? "🎤 Listening... (your words will appear above)"
+                  : "🎤 Voice recognition ready"
                 : "Voice not supported - Please type your response"}
             </div>
 
