@@ -31,7 +31,10 @@ const interviewSchema = new Schema({
   }],
 
   totalScore: Number,
-
+  report: {
+    type: String,
+    default: '',
+  },
   startedAt: Date,
   completedAt: Date,
 });

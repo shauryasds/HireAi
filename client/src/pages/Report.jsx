@@ -1,12 +1,14 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Report() {
   const { interviewId } = useParams();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  const { user} = useAuth();
+  
   useEffect(() => {
     const fetchReport = async () => {
       try {
@@ -55,7 +57,7 @@ export default function Report() {
   };
 
   return (
-    <div className="min-h-screen bg-black py-10 px-4 font-inter">
+    <div className="min-h-screen mt-10 bg-black py-10 px-4 font-inter">
       <div className="max-w-4xl mx-auto">
         <div className="bg-[#111] border border-yellow-500/20 shadow-yellow-200/10 shadow-lg rounded-2xl p-8 text-white">
           <div className="text-center mb-8">
@@ -91,26 +93,21 @@ export default function Report() {
             </div>
           </div>
 
+          {user && user.role==='recruiter' && 
+          <div>
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-yellow-400 mb-6">Question-wise Analysis</h3>
+            <h3 className="text-xl font-semibold text-yellow-400 mb-6">Ai Candidate Analysis</h3>
             <div className="space-y-4">
-              {report.questions?.map((q, index) => (
-                <div key={index} className="bg-black/50 rounded-xl p-6">
-                  <div className="flex justify-between items-start mb-3">
-                    <h4 className="font-semibold text-white flex-1">
-                      Q{index + 1}: {q.question}
-                    </h4>
-                    <span className={`font-bold text-lg ${getScoreColor(q.score)}`}>
-                      {q.score}/10
-                    </span>
-                  </div>
+              
+                <div className="bg-black/50 rounded-xl p-6">
+                  
                   <div className="bg-gray-800 rounded-lg p-4">
                     <p className="text-gray-300 text-sm leading-relaxed">
-                      {q.answer || "No answer provided"}
+                      {report && report.report} No answer provided
                     </p>
                   </div>
                 </div>
-              ))}
+              
             </div>
           </div>
 
@@ -122,6 +119,7 @@ export default function Report() {
               Print Report
             </button>
           </div>
+          </div>}
         </div>
       </div>
     </div>

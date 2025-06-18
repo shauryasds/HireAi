@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 
@@ -7,12 +8,13 @@ export default function ApplyJob() {
   const [form, setForm] = useState({ name: "", email: "" });
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/job/view/${jobId}`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/job/view/${jobId}`);
         if (!res.ok) throw new Error("Failed to fetch job details.");
         const data = await res.json();
         setJob(data);
@@ -31,9 +33,11 @@ export default function ApplyJob() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+    setError("");
 
     try {
-      const res = await fetch('http://localhost:3000/api/interview/start', {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/interview/start`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -53,7 +57,9 @@ export default function ApplyJob() {
       navigate(`/interview/${data.interviewId}`);
     } catch (err) {
       console.error(err);
-      alert("Failed to start interview");
+      setError("Failed to start interview. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -65,10 +71,16 @@ export default function ApplyJob() {
     );
   }
 
-  if (error) {
+  if (error && !job) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-red-500 font-semibold text-lg">
-        {error}
+      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-center px-4">
+        <div className="text-red-500 font-semibold text-lg mb-4">{error}</div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="bg-yellow-400 text-black px-6 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -97,6 +109,12 @@ export default function ApplyJob() {
           </div>
         </div>
 
+        {error && (
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
+            <p className="text-red-300 text-sm">{error}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block mb-1 text-sm text-yellow-400 font-semibold">
@@ -108,8 +126,9 @@ export default function ApplyJob() {
               value={form.name}
               onChange={handleChange}
               placeholder="John Doe"
-              className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
+              className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition disabled:opacity-50"
               required
+              disabled={submitting}
             />
           </div>
 
@@ -123,16 +142,18 @@ export default function ApplyJob() {
               value={form.email}
               onChange={handleChange}
               placeholder="you@example.com"
-              className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
+              className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition disabled:opacity-50"
               required
+              disabled={submitting}
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-yellow-400 text-black font-semibold py-3 rounded-full hover:bg-yellow-300 transition-all duration-300 shadow"
+            disabled={submitting}
+            className="w-full bg-yellow-400 text-black font-semibold py-3 rounded-full hover:bg-yellow-300 transition-all duration-300 shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Start Interview
+            {submitting ? "Starting Interview..." : "Start Interview"}
           </button>
         </form>
       </div>

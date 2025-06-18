@@ -1,4 +1,6 @@
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateJobMinimal() {
   const [form, setForm] = useState({
@@ -7,6 +9,8 @@ export default function CreateJobMinimal() {
     experience: "",
     jobType: "full-time",
   });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -14,6 +18,7 @@ export default function CreateJobMinimal() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const jobData = {
       ...form,
@@ -21,7 +26,7 @@ export default function CreateJobMinimal() {
     };
 
     try {
-      const res = await fetch('http://localhost:3000/api/job/post', {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/job/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(jobData),
@@ -31,21 +36,23 @@ export default function CreateJobMinimal() {
       if (!res.ok) {
         const err = await res.json();
         alert(`Error: ${err.message}`);
-        console.log(err)
         return;
       }
 
       const data = await res.json();
       const shareableLink = `${window.location.origin}/apply-job/${data.job._id}`;
-      alert(`Job Created! Share this link with candidates: ${shareableLink}`);
-
-      // Copy link to clipboard
-      navigator.clipboard.writeText(shareableLink).then(() => {
-        console.log('Link copied to clipboard');
-      });
+      
+      // Copy to clipboard and show success
+      await navigator.clipboard.writeText(shareableLink);
+      alert(`Job Created Successfully! 🎉\n\nShareable link copied to clipboard:\n${shareableLink}`);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
     } catch (err) {
       console.error("Job creation error:", err);
       alert("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,6 +71,7 @@ export default function CreateJobMinimal() {
             placeholder="e.g. React Developer"
             value={form.title}
             onChange={handleChange}
+            disabled={loading}
           />
 
           <Input
@@ -72,6 +80,7 @@ export default function CreateJobMinimal() {
             placeholder="e.g. React, Tailwind, REST API"
             value={form.skills}
             onChange={handleChange}
+            disabled={loading}
           />
 
           <Input
@@ -80,6 +89,7 @@ export default function CreateJobMinimal() {
             placeholder="e.g. 1+ years"
             value={form.experience}
             onChange={handleChange}
+            disabled={loading}
           />
 
           <div>
@@ -88,7 +98,8 @@ export default function CreateJobMinimal() {
               name="jobType"
               value={form.jobType}
               onChange={handleChange}
-              className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
+              disabled={loading}
+              className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition disabled:opacity-50"
             >
               <option value="full-time">Full-Time</option>
               <option value="part-time">Part-Time</option>
@@ -100,9 +111,10 @@ export default function CreateJobMinimal() {
 
           <button
             type="submit"
-            className="w-full bg-yellow-400 text-black font-semibold py-3 rounded-full hover:bg-yellow-300 transition-all"
+            disabled={loading}
+            className="w-full bg-yellow-400 text-black font-semibold py-3 rounded-full hover:bg-yellow-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit & Let AI Handle It
+            {loading ? "Creating Job..." : "Submit & Let AI Handle It"}
           </button>
         </form>
       </div>
@@ -110,13 +122,14 @@ export default function CreateJobMinimal() {
   );
 }
 
-function Input({ label, ...props }) {
+function Input({ label, disabled, ...props }) {
   return (
     <div className="w-full">
       <label className="block mb-1 text-sm text-yellow-400 font-semibold">{label}</label>
       <input
         {...props}
-        className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
+        disabled={disabled}
+        className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition disabled:opacity-50"
         required
       />
     </div>

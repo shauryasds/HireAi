@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../Schema/UserSchema');
 
+const auth = require('../middleware/auth');
 const router = express.Router();
 
 // Signup
@@ -60,15 +61,31 @@ router.post('/login', async (req, res) => {
 });
 
 
-router.get('me',async (req,res)=>{
-  const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({
-    id: user._id,
-    fullName: user.fullName,
-    email: user.email,
-    role: user.role,
-  });
-})
+router.get('/me',auth, async (req, res) => {
+  try {
+    // Ensure req.user is set by authentication middleware
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized: No user info provided' });
+    }
+
+    const user = await User.findById(req.user.id).select('_id fullName email role');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error('Error in /me route:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 module.exports= router;

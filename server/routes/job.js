@@ -122,6 +122,39 @@ router.get('/view/:jobId', async (req, res) => {
 });
 
 
-// Apply to a job (candidates only)
+// Get recruiter's jobs
+router.get('/my-jobs', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'recruiter') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const jobs = await Job.find({ recruiter: req.user.id }).sort({ createdAt: -1 });
+    res.json({ jobs });
+  } catch (err) {
+    console.error('Fetch jobs error:', err);
+    res.status(500).json({ error: 'Failed to fetch jobs' });
+  }
+});
+
+// Delete a job
+router.delete('/:jobId', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'recruiter') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const job = await Job.findOne({ _id: req.params.jobId, recruiter: req.user.id });
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found or unauthorized' });
+    }
+
+    await Job.findByIdAndDelete(req.params.jobId);
+    res.json({ message: 'Job deleted successfully' });
+  } catch (err) {
+    console.error('Delete job error:', err);
+    res.status(500).json({ error: 'Failed to delete job' });
+  }
+});
 
 module.exports = router;

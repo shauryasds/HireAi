@@ -1,3 +1,4 @@
+
 import React from "react";
 
 function Footer() {
@@ -32,9 +33,8 @@ function Footer() {
         </div>
       </div>
       <div className="w-full p-8 text-center text-sm sm:text-xs md:text-base text-yellow-400 font-semibold px-4 py-2">
-  Developed by — Shaurya Deep Shukla.
-</div>
-
+        Developed by — Shaurya Deep Shukla.
+      </div>
     </footer>
   );
 }
