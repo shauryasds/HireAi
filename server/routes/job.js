@@ -4,7 +4,6 @@ const router = express.Router();
 const Job = require('../Schema/JobSchema');
 const auth = require('../middleware/auth');
 const  { GoogleGenAI } = require("@google/genai");
-
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Post a new job (recruiters only)
@@ -43,7 +42,7 @@ Use this to generate a job posting JSON that strictly follows this schema:
   "experienceRequired": string (same as exsperience),
   "education": string (default to "Not specified"),
   "deadline": null,
-  "createdAt": current ISO datetime string
+  
 }
 
 Only return a valid JSON object. No explanation or extra text or backticks nothing just an object without any enclosing string ''' jsut an object like 
@@ -69,6 +68,8 @@ Only return a valid JSON object. No explanation or extra text or backticks nothi
     let jobData = JSON.parse(cleanResponse);
     // Replace placeholder with real recruiter ID
     jobData.recruiter = req.user.id;
+    const createdDate = new Date();
+    jobData.createdAt = createdDate.toLocaleString();
 
     const newJob = new Job(jobData);
     await newJob.save();
