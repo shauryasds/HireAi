@@ -67,6 +67,7 @@ const jobSchema = new Schema({
   applicants: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    default:[]
   }],
 
   isActive: {

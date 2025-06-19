@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 
@@ -10,37 +9,30 @@ export default function Interview() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
-  const [interviewerFinished, setInterviewerFinished] = useState(false);
-  const [candidateSpeaking, setCandidateSpeaking] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [timer, setTimer] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-
-  // New states for monitoring
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [showWarning, setShowWarning] = useState(false);
-  const [warningMessage, setWarningMessage] = useState("");
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [videoStream, setVideoStream] = useState(null);
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-  const [liveTranscript, setLiveTranscript] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
 
-  const recognitionRef = useRef(null);
-  const synthRef = useRef(null);
+  // Monitoring states
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
+
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const containerRef = useRef(null);
+  const codeEditorRef = useRef(null);
 
   // Detect mobile device
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -70,7 +62,7 @@ export default function Interview() {
     if (isMobile) {
       return true; // Skip fullscreen on mobile
     }
-    
+
     try {
       if (containerRef.current?.requestFullscreen) {
         await containerRef.current.requestFullscreen();
@@ -98,7 +90,7 @@ export default function Interview() {
 
   const exitFullscreen = () => {
     if (isMobile) return;
-    
+
     if (document.exitFullscreen) {
       document.exitFullscreen();
     } else if (document.webkitExitFullscreen) {
@@ -121,7 +113,6 @@ export default function Interview() {
   const autoSubmitInterview = async () => {
     setSubmitting(true);
     setIsTimerRunning(false);
-    finishCandidateResponse();
 
     try {
       const res = await fetch(
@@ -156,7 +147,7 @@ export default function Interview() {
   // Monitor fullscreen changes - Skip on mobile
   useEffect(() => {
     if (isMobile) return;
-    
+
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!(
         document.fullscreenElement ||
@@ -198,18 +189,9 @@ export default function Interview() {
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener(
-        "webkitfullscreenchange",
-        handleFullscreenChange,
-      );
-      document.removeEventListener(
-        "mozfullscreenchange",
-        handleFullscreenChange,
-      );
-      document.removeEventListener(
-        "MSFullscreenChange",
-        handleFullscreenChange,
-      );
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
     };
   }, [interviewStarted, submitting, isMobile]);
 
@@ -241,21 +223,47 @@ export default function Interview() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [interviewStarted, submitting]);
 
-  // Prevent common keyboard shortcuts
+  // Prevent common keyboard shortcuts (except coding shortcuts)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!interviewStarted) return;
 
-      // Prevent Alt+Tab, Ctrl+Tab, Cmd+Tab, F11, Escape, etc.
+      // Allow common coding shortcuts
+      const allowedCodingShortcuts = [
+        e.ctrlKey && e.key === 'c', // Copy
+        e.ctrlKey && e.key === 'v', // Paste
+        e.ctrlKey && e.key === 'x', // Cut
+        e.ctrlKey && e.key === 'z', // Undo
+        e.ctrlKey && e.key === 'y', // Redo
+        e.ctrlKey && e.key === 'a', // Select all
+        e.ctrlKey && e.key === 'f', // Find
+        e.ctrlKey && e.key === 's', // Save (for code editor)
+        e.key === 'Tab', // Tab for indentation
+        e.key === 'Enter', // Enter for new lines
+        e.key === 'Backspace', // Backspace
+        e.key === 'Delete', // Delete
+        e.key.startsWith('Arrow'), // Arrow keys
+        e.key === 'Home', // Home key
+        e.key === 'End', // End key
+        e.key === 'PageUp', // Page up
+        e.key === 'PageDown', // Page down
+      ];
+
+      // Only allow coding shortcuts if focus is on code editor
+      const isCodeEditorFocused = document.activeElement === codeEditorRef.current;
+
+      if (allowedCodingShortcuts.some(condition => condition) && isCodeEditorFocused) {
+        return; // Allow these shortcuts
+      }
+
+      // Prevent dangerous shortcuts
       const preventedKeys = [
         e.altKey && e.key === "Tab",
         e.ctrlKey && e.key === "Tab",
         e.metaKey && e.key === "Tab",
         e.key === "F11",
         e.key === "Escape" && document.fullscreenElement && !isMobile,
-        e.ctrlKey &&
-          e.shiftKey &&
-          (e.key === "I" || e.key === "C" || e.key === "J"), // Dev tools
+        e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "C" || e.key === "J"), // Dev tools
         e.key === "F12", // Dev tools
         e.ctrlKey && e.key === "u", // View source
         e.ctrlKey && e.key === "r", // Refresh
@@ -266,7 +274,7 @@ export default function Interview() {
         e.preventDefault();
         e.stopPropagation();
         showWarningModal(
-          "⚠️ Keyboard shortcuts are disabled during the interview.",
+          "⚠️ This keyboard shortcut is disabled during the technical interview.",
         );
         return false;
       }
@@ -295,17 +303,11 @@ export default function Interview() {
       if (isMobile) {
         setInterviewStarted(true);
         setIsTimerRunning(true);
-        setTimeout(() => {
-          speakQuestion(questions[0]);
-        }, 1000);
       } else {
         const success = await enterFullscreen();
         if (success) {
           setInterviewStarted(true);
           setIsTimerRunning(true);
-          setTimeout(() => {
-            speakQuestion(questions[0]);
-          }, 1000);
         } else {
           alert(
             "Fullscreen mode is required to start the interview. Please allow fullscreen access.",
@@ -322,123 +324,33 @@ export default function Interview() {
   };
 
   useEffect(() => {
-    // Initialize speech recognition with better error handling
-    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-      setSpeechSupported(true);
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = "en-US";
-
-      recognitionRef.current.onresult = (event) => {
-        let finalTranscript = "";
-        let interimTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        // Update live transcript display
-        setLiveTranscript(interimTranscript);
-
-        if (finalTranscript && candidateSpeaking) {
-          setCurrentAnswer((prev) => (prev + " " + finalTranscript).trim());
-          handleAnswerChange(
-            (answers[currentQuestion] || "") + " " + finalTranscript,
-          );
-          // Clear live transcript when final result is processed
-          setLiveTranscript("");
-        }
-      };
-
-      recognitionRef.current.onstart = () => setIsListening(true);
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-        // Auto-restart if still supposed to be listening
-        if (candidateSpeaking && speechSupported) {
-          setTimeout(() => {
-            try {
-              recognitionRef.current?.start();
-            } catch (error) {
-              console.log("Speech recognition restart failed:", error);
-            }
-          }, 100);
-        }
-      };
-      recognitionRef.current.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListening(false);
-        // Auto-restart on certain errors
-        if (event.error === 'no-speech' || event.error === 'audio-capture') {
-          setTimeout(() => {
-            if (candidateSpeaking && speechSupported) {
-              try {
-                recognitionRef.current?.start();
-              } catch (error) {
-                console.log("Speech recognition restart failed:", error);
-              }
-            }
-          }, 1000);
-        }
-      };
-    }
-
-    // Speech synthesis with better browser support
-    if ("speechSynthesis" in window) {
-      synthRef.current = window.speechSynthesis;
-    }
-
     // Get webcam with better error handling and mobile optimization
     const initializeCamera = async () => {
       try {
         const constraints = {
           video: {
-            width: isMobile ? { ideal: 640 } : { ideal: 1280 },
-            height: isMobile ? { ideal: 480 } : { ideal: 720 },
+            width: isMobile ? { ideal: 320 } : { ideal: 640 },
+            height: isMobile ? { ideal: 240 } : { ideal: 480 },
             facingMode: "user",
           },
-          audio: true, // Enable audio for speech recognition
         };
-        
+
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         setVideoStream(stream);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
       } catch (err) {
-        console.error("Camera/microphone access denied:", err);
-        // Try video only if audio fails
-        try {
-          const videoOnlyStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: isMobile ? { ideal: 640 } : { ideal: 1280 },
-              height: isMobile ? { ideal: 480 } : { ideal: 720 },
-              facingMode: "user",
-            }
-          });
-          setVideoStream(videoOnlyStream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = videoOnlyStream;
-          }
-        } catch (videoErr) {
-          console.error("Video access also failed:", videoErr);
-          alert(
-            "Camera and microphone access is required for the interview. Please allow access and refresh the page.",
-          );
-        }
+        console.error("Camera access denied:", err);
+        alert(
+          "Camera access is required for the interview. Please allow access and refresh the page.",
+        );
       }
     };
 
     initializeCamera();
 
-    // Load questions
+    // Load technical questions
     const storedQuestions = localStorage.getItem(`interview_${sessionId}`);
     if (storedQuestions) {
       const parsedQuestions = JSON.parse(storedQuestions);
@@ -446,19 +358,19 @@ export default function Interview() {
       setAnswers(new Array(parsedQuestions.length).fill(""));
       setLoading(false);
     } else {
-      // If no stored questions, create some default ones
-      const defaultQuestions = [
-        "Tell me about yourself and your background.",
-        "What interests you about this position?",
-        "What are your greatest strengths?",
-        "Describe a challenging project you've worked on.",
-        "Where do you see yourself in 5 years?",
+      // Technical coding questions
+      const technicalQuestions = [
+        "Write a function to reverse a string without using built-in reverse methods.",
+        "Implement a function to check if a string is a palindrome.",
+        "Write a function to find the factorial of a number using recursion.",
+        "Create a function to find the largest element in an array.",
+        "Implement a function to remove duplicates from an array.",
       ];
-      setQuestions(defaultQuestions);
-      setAnswers(new Array(defaultQuestions.length).fill(""));
+      setQuestions(technicalQuestions);
+      setAnswers(new Array(technicalQuestions.length).fill(""));
       localStorage.setItem(
         `interview_${sessionId}`,
-        JSON.stringify(defaultQuestions),
+        JSON.stringify(technicalQuestions),
       );
       setLoading(false);
     }
@@ -468,12 +380,6 @@ export default function Interview() {
       if (videoStream) {
         videoStream.getTracks().forEach((track) => track.stop());
       }
-      if (recognitionRef.current && isListening) {
-        recognitionRef.current.stop();
-      }
-      if (synthRef.current) {
-        synthRef.current.cancel();
-      }
       clearInterval(timerRef.current);
     };
   }, [sessionId, isMobile]);
@@ -482,72 +388,28 @@ export default function Interview() {
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = value;
     setAnswers(newAnswers);
-  };
-
-  const speakQuestion = (question) => {
-    if (synthRef.current && question) {
-      synthRef.current.cancel();
-      setInterviewerFinished(false);
-      setCandidateSpeaking(false);
-
-      const utterance = new SpeechSynthesisUtterance(question);
-      utterance.rate = 0.8;
-      utterance.pitch = 1;
-      utterance.volume = 0.8;
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        setInterviewerFinished(true);
-      };
-      utterance.onerror = (event) => {
-        console.error("Speech synthesis error:", event.error);
-        setIsSpeaking(false);
-        setInterviewerFinished(true);
-      };
-      synthRef.current.speak(utterance);
-    }
-  };
-
-  const startCandidateResponse = () => {
-    setCandidateSpeaking(true);
-    setCurrentAnswer("");
-    setLiveTranscript("");
-    if (recognitionRef.current && !isListening && speechSupported) {
-      try {
-        recognitionRef.current.start();
-      } catch (error) {
-        console.error("Failed to start speech recognition:", error);
-      }
-    }
-  };
-
-  const finishCandidateResponse = () => {
-    setCandidateSpeaking(false);
-    setLiveTranscript("");
-    if (recognitionRef.current && isListening) {
-      try {
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error("Failed to stop speech recognition:", error);
-      }
-    }
+    setCurrentAnswer(value);
   };
 
   const nextQuestion = () => {
-    finishCandidateResponse();
     setCurrentQuestion((prev) => {
       const next = Math.min(prev + 1, questions.length - 1);
-      if (next < questions.length) {
-        setTimeout(() => speakQuestion(questions[next]), 500);
-      }
+      setCurrentAnswer(answers[next] || "");
       return next;
+    });
+  };
+
+  const previousQuestion = () => {
+    setCurrentQuestion((prev) => {
+      const previous = Math.max(prev - 1, 0);
+      setCurrentAnswer(answers[previous] || "");
+      return previous;
     });
   };
 
   const submitInterview = async () => {
     setSubmitting(true);
     setIsTimerRunning(false);
-    finishCandidateResponse();
 
     try {
       const res = await fetch(
@@ -577,252 +439,244 @@ export default function Interview() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="text-yellow-400 text-xl animate-pulse">
-          Loading interview...
+          Loading technical interview...
         </div>
       </div>
     );
 
   // Show start screen if interview hasn't started
-  if (!interviewStarted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white font-inter p-4">
-        <div className="text-center max-w-2xl w-full">
-          <h1 className="text-2xl md:text-4xl font-bold text-yellow-400 mb-6">
-            Interview Ready
-          </h1>
-          <div className="text-sm md:text-lg text-gray-300 mb-8 space-y-4">
-            <p>
-              ⚠️ <strong>Important Guidelines:</strong>
-            </p>
-            <ul className="text-left space-y-2 bg-gray-900 p-4 md:p-6 rounded-lg text-xs md:text-sm">
-              {!isMobile && <li>• This interview must be completed in fullscreen mode</li>}
-              <li>• Tab switching is monitored during the interview</li>
-              <li>• Keyboard shortcuts will be disabled</li>
-              <li>• You will receive 1 warning for violations</li>
-              <li>• After 2 violations, the interview will auto-submit</li>
-              <li>• Ensure your webcam and microphone are working</li>
-              {isMobile && <li>• Mobile users: Please don't switch between apps during the interview</li>}
-            </ul>
-          </div>
-          <button
-            onClick={startInterview}
-            className="bg-yellow-400 text-black px-6 md:px-8 py-3 md:py-4 rounded-lg text-lg md:text-xl font-semibold hover:bg-yellow-300 transition-all duration-200 w-full md:w-auto"
-          >
-            🚀 Start Interview {!isMobile && "(Enter Fullscreen)"}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
-      ref={containerRef}
-      className={`${isMobile ? 'min-h-screen' : 'fixed inset-0'} z-50 bg-black text-white font-inter overflow-hidden`}
-    >
-      {/* Warning Modal */}
-      {showWarning && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[100] p-4">
-          <div className="bg-red-900 border-2 border-red-500 rounded-lg p-6 md:p-8 max-w-md w-full text-center">
-            <h2 className="text-xl md:text-2xl font-bold text-red-400 mb-4">
-              ⚠️ WARNING
-            </h2>
-            <p className="text-white mb-6 text-sm md:text-base">
-              {warningMessage}
-            </p>
-            <button
-              onClick={() => setShowWarning(false)}
-              className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-400 transition-all duration-200"
-            >
-              I Understand
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Timer and Controls Header */}
-      <div className="absolute top-2 md:top-4 left-2 md:left-4 right-2 md:right-4 flex justify-between items-center z-10 flex-wrap gap-2">
-        <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-          <div className="bg-red-600 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-mono">
-            🔴 {formatTime(timer)}
-          </div>
-          <div className="text-xs md:text-sm text-gray-400">
-            Q {currentQuestion + 1}/{questions.length}
-          </div>
-          {tabSwitchCount > 0 && (
-            <div className="bg-red-500 px-2 md:px-3 py-1 rounded-full text-xs">
-              ⚠️ {tabSwitchCount}/2
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="bg-green-600 px-2 md:px-3 py-1 rounded text-xs md:text-sm">
-            🔒 Secure
-          </div>
-          {isMobile && (
-            <div className="bg-blue-600 px-2 md:px-3 py-1 rounded text-xs">
-              📱 Mobile
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex flex-col lg:flex-row h-full pt-12 md:pt-16">
-        {/* AI Interviewer Section */}
-        <div className="w-full lg:w-1/2 bg-[#111] border-b lg:border-b-0 lg:border-r border-yellow-400/30 p-4 md:p-8 flex flex-col items-center justify-center min-h-[40vh] lg:min-h-full">
-          <div className="text-center">
-            <div className="text-yellow-400 text-lg md:text-2xl font-bold mb-4">
-              AI Interviewer
-            </div>
-            <div
-              className={`w-20 h-20 md:w-32 md:h-32 lg:w-48 lg:h-48 rounded-full flex items-center justify-center text-2xl md:text-4xl lg:text-6xl transition-all duration-300 ${
-                isSpeaking
-                  ? "bg-gradient-to-tr from-green-400 via-green-500 to-green-300 animate-pulse shadow-green-400 shadow-2xl"
-                  : "bg-gradient-to-tr from-yellow-300 via-yellow-500 to-yellow-400"
-              }`}
-            >
-              🤖
-            </div>
-
-            {isSpeaking && (
-              <div className="mt-4 text-green-400 font-semibold animate-pulse text-sm md:text-base">
-                Speaking...
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 md:mt-8 text-center max-w-md">
-            <h2 className="text-base md:text-lg lg:text-xl font-semibold mb-4 text-yellow-400">
-              {questions[currentQuestion]}
-            </h2>
-          </div>
-        </div>
-
-        {/* Candidate Section */}
-        <div className="w-full lg:w-1/2 bg-[#0a0a0a] p-4 md:p-8 flex flex-col items-center justify-center min-h-[60vh] lg:min-h-full">
-          <div className="text-center mb-4 md:mb-8 w-full">
-            <div className="text-yellow-400 text-lg md:text-2xl font-bold mb-4">
-              You
-            </div>
-
-            {/* Live Camera Feed */}
-            <div
-              className={`w-40 h-30 md:w-60 md:h-44 lg:w-80 lg:h-56 rounded-lg overflow-hidden mx-auto border-4 transition-all duration-300 ${
-                candidateSpeaking
-                  ? "border-red-500 shadow-red-500 shadow-2xl animate-pulse"
-                  : isListening
-                    ? "border-green-400 shadow-green-400 shadow-md"
-                    : "border-gray-600"
-              }`}
-            >
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {candidateSpeaking && (
-              <div className="mt-4 text-red-400 font-semibold animate-pulse text-sm md:text-base">
-                🎤 Recording...
-              </div>
-            )}
-          </div>
-
-          {/* Response Display */}
-          <div className="w-full max-w-md">
-            <div className="bg-black border border-yellow-400/40 rounded-xl p-3 md:p-4 mb-4 min-h-20 md:min-h-32">
-              <div className="text-gray-300 text-sm md:text-base max-h-24 md:max-h-32 overflow-y-auto">
-                {answers[currentQuestion] || "Your response will appear here..."}
-                {liveTranscript && (
-                  <span className="text-blue-400 italic">
-                    {" "}{liveTranscript}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="text-xs text-gray-400 mb-4 md:mb-6 text-center">
-              {speechSupported
-                ? isListening
-                  ? "🎤 Listening... (your words will appear above)"
-                  : "🎤 Voice recognition ready"
-                : "Voice not supported - Please type your response"}
-            </div>
-
-            {/* Manual text input for backup */}
-            {!speechSupported && (
-              <textarea
-                value={answers[currentQuestion] || ""}
-                onChange={(e) => handleAnswerChange(e.target.value)}
-                placeholder="Type your response here..."
-                className="w-full bg-gray-800 text-white p-3 rounded-lg mb-4 min-h-24 resize-none text-sm md:text-base"
-              />
-            )}
-
-            {/* Control Buttons */}
-            <div className="flex flex-col gap-3">
-              {interviewerFinished && !candidateSpeaking && speechSupported && (
-                <button
-                  onClick={startCandidateResponse}
-                  className="bg-green-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-green-400 transition-all duration-200 animate-bounce text-sm md:text-base"
-                >
-                  🎤 Start Speaking
-                </button>
-              )}
-              {candidateSpeaking && (
-                <button
-                  onClick={finishCandidateResponse}
-                  className="bg-red-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-red-400 transition-all duration-200 text-sm md:text-base"
-                >
-                  ✋ Done Speaking
-                </button>
-              )}
-
-              {!candidateSpeaking && !isSpeaking && (
-                <div className="flex gap-3">
-                  {currentQuestion === questions.length - 1 ? (
-                    <button
-                      onClick={submitInterview}
-                      disabled={submitting}
-                      className="flex-1 bg-yellow-400 text-black px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-yellow-300 disabled:opacity-50 transition-all duration-200 text-sm md:text-base"
-                    >
-                      {submitting ? "Submitting..." : "✅ Submit Interview"}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={nextQuestion}
-                      className="flex-1 bg-yellow-400 text-black px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-all duration-200 text-sm md:text-base"
-                    >
-                      ➡️ Next Question
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Progress Indicator */}
-          <div className="flex gap-1 md:gap-2 mt-4 md:mt-6">
-            {questions.map((_, i) => (
-              <div
-                key={i}
-                className={`w-2 h-2 md:w-3 md:h-3 lg:w-4 lg:h-4 rounded-full transition-all duration-300 ${
-                  i === currentQuestion
-                    ? "bg-yellow-400 scale-125"
-                    : answers[i]
-                      ? "bg-green-500"
-                      : "bg-gray-600"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <>
+    {!interviewStarted &&
+      
+       <div className="min-h-screen fixed inset-0 z-[999] flex items-center justify-center bg-black text-white font-inter p-4">
+         <div className="text-center max-w-2xl w-full">
+           <h1 className="text-2xl md:text-4xl font-bold text-yellow-400 mb-6">
+             💻 Technical Interview Ready
+           </h1>
+           <div className="text-sm md:text-lg text-gray-300 mb-8 space-y-4">
+             <p>
+               ⚠️ <strong>Technical Interview Guidelines:</strong>
+             </p>
+             <ul className="text-left space-y-2 bg-gray-900 p-4 md:p-6 rounded-lg text-xs md:text-sm">
+               {!isMobile && <li>• This interview must be completed in fullscreen mode</li>}
+               <li>• You will be asked to write code solutions</li>
+               <li>• Tab switching is monitored during the interview</li>
+               <li>• Coding shortcuts (Ctrl+C, Ctrl+V, Tab) are allowed</li>
+               <li>• You will receive 1 warning for violations</li>
+               <li>• After 2 violations, the interview will auto-submit</li>
+               <li>• Ensure your webcam is working for monitoring</li>
+               <li>• Write clean, well-commented code</li>
+               {isMobile && <li>• Mobile users: Please don't switch between apps during the interview</li>}
+             </ul>
+           </div>
+           <button
+             onClick={startInterview}
+             className="bg-yellow-400 text-black px-6 md:px-8 py-3 md:py-4 rounded-lg text-lg md:text-xl font-semibold hover:bg-yellow-300 transition-all duration-200 w-full md:w-auto"
+           >
+             🚀 Start Technical Interview {!isMobile && "(Enter Fullscreen)"}
+           </button>
+         </div>
+       </div>
+     }
+   
+ 
+  
+     <div
+       ref={containerRef}
+       className={`${isMobile ? 'min-h-screen' : 'fixed inset-0'} z-50 bg-black text-white font-inter overflow-hidden`}
+     >
+       {/* Warning Modal */}
+       {showWarning && (
+         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[100] p-4">
+           <div className="bg-red-900 border-2 border-red-500 rounded-lg p-6 md:p-8 max-w-md w-full text-center">
+             <h2 className="text-xl md:text-2xl font-bold text-red-400 mb-4">
+               ⚠️ WARNING
+             </h2>
+             <p className="text-white mb-6 text-sm md:text-base">
+               {warningMessage}
+             </p>
+             <button
+               onClick={() => setShowWarning(false)}
+               className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-400 transition-all duration-200"
+             >
+               I Understand
+             </button>
+           </div>
+         </div>
+       )}
+ 
+       {/* Timer and Controls Header */}
+       <div className="absolute top-2 md:top-4 left-2 md:left-4 right-2 md:right-4 flex justify-between items-center z-10 flex-wrap gap-2">
+         <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+           <div className="bg-red-600 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-mono">
+             🔴 {formatTime(timer)}
+           </div>
+           <div className="text-xs md:text-sm text-gray-400">
+             Problem {currentQuestion + 1}/{questions.length}
+           </div>
+           {tabSwitchCount > 0 && (
+             <div className="bg-red-500 px-2 md:px-3 py-1 rounded-full text-xs">
+               ⚠️ {tabSwitchCount}/2
+             </div>
+           )}
+         </div>
+ 
+         <div className="flex items-center gap-2">
+           <div className="bg-green-600 px-2 md:px-3 py-1 rounded text-xs md:text-sm">
+             🔒 Secure
+           </div>
+           {isMobile && (
+             <div className="bg-blue-600 px-2 md:px-3 py-1 rounded text-xs">
+               📱 Mobile
+             </div>
+           )}
+         </div>
+       </div>
+ 
+       {/* Main Content */}
+       <div className="flex h-full pt-12 md:pt-16">
+         {/* Question and Camera Section */}
+         <div className="w-full lg:w-1/3 bg-[#111] border-r border-yellow-400/30 p-4 md:p-6 flex flex-col">
+           {/* Question */}
+           <div className="mb-6">
+             <h2 className="text-lg md:text-xl font-bold text-yellow-400 mb-3">
+               💻 Coding Problem {currentQuestion + 1}
+             </h2>
+             <div className="bg-black/50 rounded-lg p-4 text-sm md:text-base text-gray-300">
+               {questions[currentQuestion]}
+             </div>
+           </div>
+ 
+           {/* Camera Feed */}
+           <div className="flex flex-col items-center">
+             <div className="text-yellow-400 text-sm font-semibold mb-2">
+               Live Monitoring
+             </div>
+             <div className="w-32 h-24 md:w-40 md:h-30 rounded-lg overflow-hidden border-2 border-gray-600">
+               <video
+                 ref={videoRef}
+                 autoPlay
+                 muted
+                 playsInline
+                 className="w-full h-full object-cover"
+               />
+             </div>
+           </div>
+ 
+           {/* Progress Indicators */}
+           <div className="mt-6">
+             <div className="text-xs text-gray-400 mb-2">Progress</div>
+             <div className="flex gap-1">
+               {questions.map((_, i) => (
+                 <div
+                   key={i}
+                   className={`flex-1 h-2 rounded-full transition-all duration-300 ${
+                     i === currentQuestion
+                       ? "bg-yellow-400"
+                       : answers[i]
+                         ? "bg-green-500"
+                         : "bg-gray-600"
+                   }`}
+                 />
+               ))}
+             </div>
+           </div>
+         </div>
+ 
+         {/* Code Editor Section */}
+         <div className="flex-1 bg-[#0a0a0a] p-4 md:p-6 flex flex-col">
+           <div className="flex justify-between items-center mb-4">
+             <h3 className="text-lg font-semibold text-yellow-400">
+               💻 Code Editor
+             </h3>
+             <div className="text-xs text-gray-400">
+               Use keyboard shortcuts: Ctrl+C, Ctrl+V, Tab, etc.
+             </div>
+           </div>
+ 
+           {/* Code Editor */}
+           <div className="flex-1 mb-4">
+             <textarea
+               ref={codeEditorRef}
+               value={currentAnswer}
+               onChange={(e) => handleAnswerChange(e.target.value)}
+               placeholder="// Write your solution here...
+ // Example:
+ function solution() {
+     // Your code here
+     return result;
+ }
+ 
+ // Test your solution
+ console.log(solution());"
+               className="w-full h-full bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm resize-none border border-gray-700 focus:border-yellow-400 focus:outline-none"
+               style={{ 
+                 minHeight: '400px',
+                 fontFamily: 'Monaco, Menlo, \"Ubuntu Mono\", monospace',
+                 tabSize: 4,
+                 lineHeight: '1.5'
+               }}
+               onKeyDown={(e) => {
+                 if (e.key === 'Tab') {
+                   e.preventDefault();
+                   const start = e.target.selectionStart;
+                   const end = e.target.selectionEnd;
+                   const value = e.target.value;
+                   const newValue = value.substring(0, start) + '    ' + value.substring(end);
+                   handleAnswerChange(newValue);
+                   // Set cursor position after the inserted tab
+                   setTimeout(() => {
+                     e.target.selectionStart = e.target.selectionEnd = start + 4;
+                   }, 0);
+                 }
+               }}
+             />
+           </div>
+ 
+           {/* Control Buttons */}
+           <div className="flex gap-3 flex-wrap">
+             <button
+               onClick={previousQuestion}
+               disabled={currentQuestion === 0}
+               className="bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+             >
+               ← Previous
+             </button>
+ 
+             {currentQuestion === questions.length - 1 ? (
+               <button
+                 onClick={submitInterview}
+                 disabled={submitting}
+                 className="flex-1 bg-yellow-400 text-black px-6 py-2 rounded-lg font-semibold hover:bg-yellow-300 disabled:opacity-50 transition-all duration-200"
+               >
+                 {submitting ? "Submitting..." : "✅ Submit Interview"}
+               </button>
+             ) : (
+               <button
+                 onClick={nextQuestion}
+                 className="flex-1 bg-yellow-400 text-black px-6 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition-all duration-200"
+               >
+                 Next Problem →
+               </button>
+             )}
+           </div>
+ 
+           {/* Instructions */}
+           <div className="mt-4 text-xs text-gray-500 space-y-1">
+             <p>💡 Tips:</p>
+             <ul className="list-disc list-inside space-y-1 ml-2">
+               <li>Write clean, readable code with proper indentation</li>
+               <li>Add comments to explain your logic</li>
+               <li>Test your solution with different inputs</li>
+               <li>Consider edge cases and error handling</li>
+             </ul>
+           </div>
+         </div>
+       </div>
+     </div>
+  
+     </>
   );
 }

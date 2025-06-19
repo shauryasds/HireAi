@@ -82,7 +82,7 @@ console.log(interviewsData, "interviewsData")
 
         {/* Filters */}
         <div className="bg-[#111] rounded-xl border border-yellow-400/20 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Search</label>
               <input
@@ -107,19 +107,7 @@ console.log(interviewsData, "interviewsData")
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Job Position</label>
-              <select
-                value={selectedJob}
-                onChange={(e) => setSelectedJob(e.target.value)}
-                className="w-full bg-black border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400"
-              >
-                <option value="all">All Positions</option>
-                {/* {jobs.map(job => (
-                  <option key={job._id} value={job._id}>{job.title}</option>
-                ))} */}
-              </select>
-            </div>
+            
 
             <div className="flex items-end">
               <button

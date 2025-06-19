@@ -62,7 +62,7 @@ function Home() {
       </div>
 
       {/* Other Sections */}
-      <Pricing />
+      {/* <Pricing /> */}
       <CTA />
       <Timeline />
       <Footer />

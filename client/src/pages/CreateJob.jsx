@@ -1,13 +1,11 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function CreateJobMinimal() {
   const [form, setForm] = useState({
     title: "",
-    skills: "",
-    experience: "",
-    jobType: "full-time",
+    company: "",
+    description: ""
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -20,34 +18,25 @@ export default function CreateJobMinimal() {
     e.preventDefault();
     setLoading(true);
 
-    const jobData = {
-      ...form,
-      skillsRequired: form.skills.split(",").map((s) => s.trim()),
-    };
-
     try {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL}/api/job/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jobData),
-        credentials: "include", 
+        body: JSON.stringify(form),
+        credentials: "include",
       });
 
       if (!res.ok) {
         const err = await res.json();
-        alert(`Error: ${err.message}`);
+        alert(`Error: ${err.error || err.message}`);
         return;
       }
 
       const data = await res.json();
-      const shareableLink = `${window.location.origin}/apply-job/${data.job._id}`;
       
-      // Copy to clipboard and show success
-      await navigator.clipboard.writeText(shareableLink);
-      alert(`Job Created Successfully! 🎉\n\nShareable link copied to clipboard:\n${shareableLink}`);
-      
-      // Navigate to dashboard
-      navigate('/dashboard');
+      alert(`Job Created Successfully! 🎉\n\n Job Link will be genrated in My Jobs`);
+
+      navigate("/my-jobs");
     } catch (err) {
       console.error("Job creation error:", err);
       alert("Something went wrong.");
@@ -75,39 +64,22 @@ export default function CreateJobMinimal() {
           />
 
           <Input
-            label="Skills Required (comma separated)"
-            name="skills"
-            placeholder="e.g. React, Tailwind, REST API"
-            value={form.skills}
+            label="Company Name"
+            name="company"
+            placeholder="e.g. NimankIT or Confidential"
+            value={form.company}
             onChange={handleChange}
             disabled={loading}
           />
 
-          <Input
-            label="Experience Level"
-            name="experience"
-            placeholder="e.g. 1+ years"
-            value={form.experience}
+          <Textarea
+            label="Job Description"
+            name="description"
+            placeholder="Include skills, experience, job type, location, salary, etc. in natural language"
+            value={form.description}
             onChange={handleChange}
             disabled={loading}
           />
-
-          <div>
-            <label className="block mb-1 text-sm text-yellow-400 font-semibold">Job Type</label>
-            <select
-              name="jobType"
-              value={form.jobType}
-              onChange={handleChange}
-              disabled={loading}
-              className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition disabled:opacity-50"
-            >
-              <option value="full-time">Full-Time</option>
-              <option value="part-time">Part-Time</option>
-              <option value="internship">Internship</option>
-              <option value="contract">Contract</option>
-              <option value="remote">Remote</option>
-            </select>
-          </div>
 
           <button
             type="submit"
@@ -130,6 +102,21 @@ function Input({ label, disabled, ...props }) {
         {...props}
         disabled={disabled}
         className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition disabled:opacity-50"
+        required
+      />
+    </div>
+  );
+}
+
+function Textarea({ label, disabled, ...props }) {
+  return (
+    <div className="w-full">
+      <label className="block mb-1 text-sm text-yellow-400 font-semibold">{label}</label>
+      <textarea
+        {...props}
+        rows={6}
+        disabled={disabled}
+        className="w-full bg-black text-white border border-yellow-400/40 rounded-xl px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition disabled:opacity-50 resize-none"
         required
       />
     </div>

@@ -17,7 +17,7 @@ export default function Signup() {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/interviews" replace />;
   }
 
   const handleChange = (e) => {

@@ -17,7 +17,7 @@ router.post('/start', async (req, res) => {
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
     // Generate interview questions based on job
-    const prompt = `Generate 5 interview questions for a ${job.title} position requiring skills: ${job.skillsRequired.join(', ')}. 
+    const prompt = `Generate 5 code based technical interview questions with the example code provided that reuire user to write the code  also the answer required  must be short and medium level difficulty   for a ${job.title} position requiring skills: ${job.skillsRequired.join(', ')}. 
     Return ONLY a JSON array of strings, no extra text:
     ["question1", "question2", "question3", "question4", "question5"]`;
 
@@ -36,10 +36,10 @@ router.post('/start', async (req, res) => {
     } catch (e) {
       // Fallback questions
       questions = [
-        "Tell me about yourself and your experience",
-        "Why are you interested in this position?",
-        "What are your key strengths?",
-        "Describe a challenging project you worked on",
+        "Write a code to describe promise in js",
+        "Is js single threaded or not ?",
+        "What are props in js write basic code for it ?",
+        "Describe the working of async await via code ",
         "Where do you see yourself in 5 years?"
       ];
     }

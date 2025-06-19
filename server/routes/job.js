@@ -14,7 +14,7 @@ router.post('/post', auth, async (req, res) => {
   }
 
   try {
-    const { title, skills, experience, jobType } = req.body;
+    const { title, description, company } = req.body;
 
     const prompt = `
 You are an expert technical recruiter assistant.
@@ -22,9 +22,8 @@ You are an expert technical recruiter assistant.
 Given the following inputs from a recruiter:
 
 - title: ${title}
-- skills: ${skills}
-- experience: ${experience}
-- jobType: ${jobType}
+- company: ${company}
+- description: ${description}
 
 Use this to generate a job posting JSON that strictly follows this schema:
 
@@ -33,19 +32,17 @@ Use this to generate a job posting JSON that strictly follows this schema:
   "description": string (3–4 lines),
   "company": string (use "Confidential" or a generic name),
   "location": string (use "Remote" if not specified),
-  "type": string (must match jobType exactly),
+  "type": string (enum: ['full-time', 'part-time', 'internship', 'contract', 'freelance', 'remote'],
+  ),
   "salaryRange": {
     "min": number (reasonable lower bound in INR),
     "max": number (reasonable upper bound in INR),
     "currency": "INR"
   },
-  "skillsRequired": array of lowercase trimmed strings based on provided skills,
+  "skillsRequired": array of lowercase trimmed strings ,
   "experienceRequired": string (same as exsperience),
   "education": string (default to "Not specified"),
   "deadline": null,
-  "recruiter": "mock_recruiter_id_placeholder",
-  "applicants": [],
-  "isActive": true,
   "createdAt": current ISO datetime string
 }
 

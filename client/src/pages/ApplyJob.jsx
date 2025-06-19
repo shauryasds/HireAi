@@ -107,6 +107,9 @@ export default function ApplyJob() {
               </span>
             ))}
           </div>
+        <p className="text-xl font-bold mt-8 bg-yellow-500 w-1/2 m-auto rounded-lg text-black p-6 text-center mb-8">
+          Attend Technical Interview Now :-
+        </p>
         </div>
 
         {error && (
