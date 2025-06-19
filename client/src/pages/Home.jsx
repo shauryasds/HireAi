@@ -4,6 +4,7 @@ import Timeline from "../components/Timeline.jsx";
 import Pricing from "../components/Pricing.jsx";
 import Footer from "../components/Footer.jsx";
 import CTA from "../components/Cta.jsx";
+import WhatWeDoSection from "../components/WhatWeDo.jsx";
 
 function Home() {
   return (
@@ -20,7 +21,9 @@ function Home() {
           <p className="mt-6 text-base sm:text-lg text-gray-300 max-w-xl leading-relaxed mx-auto md:mx-0">
             Streamline your hiring process using artificial intelligence. From
             job creation to resume analysis, automated interviews, and detailed
-            reports – everything is handled smartly and efficiently.
+            reports – everything is handled smartly and efficiently.<br/>
+            <span className="text-yellow-400  ">Post a Job in  1-min And Let AI do the Work</span>
+
           </p>
         </div>
 
@@ -60,8 +63,7 @@ function Home() {
           </motion.div>
         </div>
       </div>
-
-      {/* Other Sections */}
+      <WhatWeDoSection/>
       {/* <Pricing /> */}
       <CTA />
       <Timeline />

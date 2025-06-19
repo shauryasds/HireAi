@@ -4,10 +4,7 @@ function Timeline() {
         title: "Create Job Instantly",
         desc: "Use AI-assisted job creation to auto-generate optimized job descriptions.",
       },
-      {
-        title: "Smart Resume Screening",
-        desc: "AI filters out unqualified candidates — no more manual shortlisting.",
-      },
+      
       {
         title: "Automated Interviews",
         desc: "AI conducts structured interviews and captures key behavioral insights.",
