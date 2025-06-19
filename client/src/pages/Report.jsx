@@ -12,7 +12,7 @@ export default function Report() {
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/interview/report/${interviewId}`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_API_URL || "http://localhost:3000"}/api/interview/report/${interviewId}`);
         if (!res.ok) throw new Error("Failed to fetch report");
 
         const data = await res.json();
