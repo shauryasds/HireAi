@@ -11,7 +11,7 @@ function CTA() {
           Experience an AI-powered interview without signing up. See how it works, love the experience — then create your account and post jobs effortlessly.
         </p>
         <Link
-          to="/apply-job/6853eb7e72aba40f3639987f"
+          to="/apply-job/6853f6861b9a5136eda4a066"
           className="inline-block bg-yellow-400 text-black text-lg font-semibold px-8 py-4 rounded-full shadow-md hover:bg-yellow-300 transition duration-300"
         >
           🎯 Start Demo Interview (No Login)
