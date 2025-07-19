@@ -40,43 +40,43 @@
 ## 🚀 Getting Started
 
 ### 1. Clone the repo
-bash
-git clone https://github.com/yourusername/hireai.git
-cd hireai
-cd client
-npm install
+- bash
+- git clone https://github.com/yourusername/hireai.git
+- cd hireai
+- cd client
+- npm install
 
-cd ../server
-npm install
+- cd ../server
+- npm install
 
 
 # server/.env
-MONGO_URI=your_mongodb_url
-OPENAI_API_KEY=your_openai_or_gemini_key
-JWT_SECRET=your_secret_key
+- MONGO_URI=your_mongodb_url
+- OPENAI_API_KEY=your_openai_or_gemini_key
+- JWT_SECRET=your_secret_key
 
 
 # In one terminal
-cd server
-npm run dev
+- cd server
+- npm run dev
 
 # In another terminal
-cd client
-npm run dev
+- cd client
+- npm run dev
 
 
 #  🧪 Future Additions
-Live coding rounds with AI evaluation
-ATS integration for enterprise
-Multilingual interview support
-Feedback generation using sentiment analysis
+- Live coding rounds with AI evaluation
+- ATS integration for enterprise
+- Multilingual interview support
+- Feedback generation using sentiment analysis
 
 
 # 🏆 Achievements
-Finalist at Build with India Hackathon 2025 (Top 10%)
-Built from scratch as a one-person project with full GenAI integration
+- Finalist at Build with India Hackathon 2025 (Top 10%)
+- Built from scratch as a one-person project with full GenAI integration
 
 
 # 🙋 About the Creator
-Shaurya Deep Shukla
-SDE Intern,Teacher,Loves to build.
+- Shaurya Deep Shukla
+- SDE Intern,Teacher,Loves to build.
