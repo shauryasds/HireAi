@@ -5,7 +5,7 @@
 
 ## Screenshots
 
-<img width="1470" height="956" alt="Screenshot 2025-07-19 at 1 07 09 PM" src="https://github.com/user-attachments/assets/3836f14e-ef18-427f-b495-69189adcb0f1" />
+<img width="1470" height="838" alt="image" src="https://github.com/user-attachments/assets/c0216d74-7082-4d5b-9f05-f4a8b2710d73" />
 <img width="1470" height="838" alt="Screenshot 2025-07-19 at 1 08 02 PM" src="https://github.com/user-attachments/assets/56a4dd27-2e91-446e-829c-eca1ba025c0a" />
 <img width="1470" height="838" alt="image" src="https://github.com/user-attachments/assets/786a0aba-ada2-4936-8b81-8e651bd9c4aa" />
 
