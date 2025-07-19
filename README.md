@@ -1,14 +1,12 @@
 # HireAI 🚀
 
-**HireAI** is a full-stack, AI-powered interview platform built using the **MERN stack** that streamlines the hiring process through automation, real-time evaluation, and immersive virtual interview experiences. It helps companies identify the right candidates efficiently using cutting-edge GenAI technologies.
+**HireAI** is a full-stack, AI-powered interview platform built using the **MERN stack** that streamlines the hiring process through automation, real-time evaluation, and immersive virtual coding interview experiences. It helps companies identify the right candidates efficiently using cutting-edge GenAI technologies.
 
 ## 🧠 Features
 
 ### 👤 Candidate Experience
-- ✍️ **Resume Upload & Analysis**: Upload your resume and let AI analyze missing skills and improvements.
-- 🤖 **AI-Conducted Interview**: Get interviewed by an AI with voice-based questions and live feedback.
+- 🤖 **AI-Conducted Interview**: Get interviewed by an AI with coding-based questions and live feedback.
 - 🎥 **Webcam Proctoring**: Face detection and tab-switch monitoring ensure focus and authenticity.
-- 🎤 **Voice & Text Support**: Respond to interview questions via microphone or chat.
 
 ### 🧑‍💼 HR/Admin Panel
 - 📋 **Job Role Management**: Create job roles and define skill requirements.
@@ -24,8 +22,7 @@
 | Backend      | Node.js, Express.js                |
 | Database     | MongoDB, Mongoose                  |
 | AI APIs      | OpenAI / Gemini API (configurable) |
-| Others       | WebRTC, MediaRecorder, JWT, Speech Recognition/Synthesis |
-
+ ---------------------------------------------------
 ## ✨ Key Highlights
 - Full-screen enforced interview mode
 - Real-time Questions Generation by AI
@@ -33,9 +30,7 @@
 - FUll Report For the Recruiter By AI.
 - Role-specific interview generator with autonomous AI.
 
-## 📸 Screenshots
 
-> Coming soon...
 
 ## 🚀 Getting Started
 
@@ -70,6 +65,7 @@
 - ATS integration for enterprise
 - Multilingual interview support
 - Feedback generation using sentiment analysis
+- Voice Based AI Interview 
 
 
 # 🏆 Achievements
