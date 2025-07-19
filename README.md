@@ -41,7 +41,7 @@
 
 ### 1. Clone the repo
 - bash
-- git clone https://github.com/yourusername/hireai.git
+- git clone <repo>
 - cd hireai
 - cd client
 - npm install
