@@ -28,10 +28,10 @@
 
 ## ✨ Key Highlights
 - Full-screen enforced interview mode
-- Real-time speaking glow effect (AI vs. Candidate)
-- Turn-based interview logic (AI speaks ➝ Candidate responds)
-- Resume gap analyzer powered by GenAI
-- Role-specific interview generator with autonomous AI agent
+- Real-time Questions Generation by AI
+- Coding-based interview.
+- FUll Report For the Recruiter By AI.
+- Role-specific interview generator with autonomous AI.
 
 ## 📸 Screenshots
 
