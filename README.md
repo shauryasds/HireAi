@@ -2,6 +2,14 @@
 
 **HireAI** is a full-stack, AI-powered interview platform built using the **MERN stack** that streamlines the hiring process through automation, real-time evaluation, and immersive virtual coding interview experiences. It helps companies identify the right candidates efficiently using cutting-edge GenAI technologies.
 
+
+## Screenshots
+
+<img width="1470" height="956" alt="Screenshot 2025-07-19 at 1 07 09 PM" src="https://github.com/user-attachments/assets/3836f14e-ef18-427f-b495-69189adcb0f1" />
+<img width="1470" height="838" alt="Screenshot 2025-07-19 at 1 08 02 PM" src="https://github.com/user-attachments/assets/56a4dd27-2e91-446e-829c-eca1ba025c0a" />
+<img width="1470" height="838" alt="image" src="https://github.com/user-attachments/assets/786a0aba-ada2-4936-8b81-8e651bd9c4aa" />
+
+
 ## 🧠 Features
 
 ### 👤 Candidate Experience
