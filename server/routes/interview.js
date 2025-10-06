@@ -73,7 +73,7 @@ router.post('/submit/:interviewId', async (req, res) => {
     const scoredQuestions = [];
     const prompt = `Score the following answer to the question "${interview.questions}" on a scale of 0 to 100 based on relevance, clarity, and depth:\n\nAnswer: "${answers}"\n\n you have do strict marking each question holds equal weight .Return an array with ONLY a number between 0 and 100. and the short report about candidate explaing is he a good fit for the job or not. like [0,"Candidate is not a good fit due to lack of relevant experience."]`;
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // or "gemini-2.0-pro", based on access
+      model: "gemini-2.5-pro", 
       contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
