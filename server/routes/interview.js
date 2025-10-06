@@ -22,7 +22,7 @@ router.post('/start', async (req, res) => {
     ["question1", "question2", "question3", "question4", "question5"]`;
 
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // or "gemini-2.0-pro", based on access
+      model: "gemini-2.5-pro", 
       contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
