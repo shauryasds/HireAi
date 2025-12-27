@@ -22,7 +22,7 @@ router.post('/start', async (req, res) => {
     ["question1", "question2", "question3", "question4", "question5"]`;
 
     const result = await ai.models.generateContent({
-      model: "gemini-2.5-pro", 
+      model: "gemini-2.5-flash", 
       contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
@@ -73,7 +73,7 @@ router.post('/submit/:interviewId', async (req, res) => {
     const scoredQuestions = [];
     const prompt = `Score the following answer to the question "${interview.questions}" on a scale of 0 to 100 based on relevance, clarity, and depth:\n\nAnswer: "${answers}"\n\n you have do strict marking each question holds equal weight .Return an array with ONLY a number between 0 and 100. and the short report about candidate explaing is he a good fit for the job or not. like [0,"Candidate is not a good fit due to lack of relevant experience."]`;
     const result = await ai.models.generateContent({
-      model: "gemini-2.5-pro", 
+      model: "gemini-2.5-flash", 
       contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
