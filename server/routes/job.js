@@ -52,7 +52,7 @@ Only return a valid JSON object. No explanation or extra text or backticks nothi
 `;
 
     const result = await ai.models.generateContent({
-      model: "gemini-2.5-pro", 
+      model: "gemini-2.5-flash", 
       contents: [{ role: "user", parts: [{ text: prompt }] }]
     });
 
